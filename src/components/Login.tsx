@@ -12,9 +12,14 @@ export default function Login({ onLogin }: LoginProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple mock login
-    if (email && password) {
+    
+    // Senha mestra vinda do ambiente (Vercel) ou padrão seguro
+    const MASTER_PASSWORD = import.meta.env.VITE_MASTER_PASSWORD || 'maquina@2026';
+    
+    if (password === MASTER_PASSWORD) {
       onLogin();
+    } else {
+      alert('Sua senha de acesso está incorreta. Entre em contato com o administrador.');
     }
   };
 
