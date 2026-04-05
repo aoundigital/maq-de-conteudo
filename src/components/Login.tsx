@@ -13,13 +13,14 @@ export default function Login({ onLogin }: LoginProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Senha mestra vinda do ambiente (Vercel) ou padrão seguro
+    // Configurações de Acesso:
+    const MASTER_EMAIL = import.meta.env.VITE_MASTER_EMAIL || 'contato@aoun.com.br';
     const MASTER_PASSWORD = import.meta.env.VITE_MASTER_PASSWORD || 'maquina@2026';
     
-    if (password === MASTER_PASSWORD) {
+    if (email === MASTER_EMAIL && password === MASTER_PASSWORD) {
       onLogin();
     } else {
-      alert('Sua senha de acesso está incorreta. Entre em contato com o administrador.');
+      alert('E-mail ou senha incorretos. Verifique suas credenciais de acesso corporativo.');
     }
   };
 
