@@ -20,14 +20,14 @@ export interface GeneratedArticle {
 }
 
 // ─────────────────────────────────────────────
-// IMAGE URL — Unsplash com keyword relevante
+// IMAGE URL — Unsplash Featured (mais estável)
 // ─────────────────────────────────────────────
 function buildImageUrl(mainKeyword: string, imageStyle: string): string {
-  // Combina keyword + estilo visual para busca mais precisa
   const query = imageStyle?.trim()
-    ? encodeURIComponent(`${mainKeyword} ${imageStyle}`)
+    ? encodeURIComponent(`${mainKeyword},${imageStyle}`)
     : encodeURIComponent(mainKeyword);
-  return `https://source.unsplash.com/1200x628/?${query}`;
+  // Usando a URL 'featured' que é mais confiável para busca por keyword
+  return `https://source.unsplash.com/featured/1200x628/?${query}`;
 }
 
 // ─────────────────────────────────────────────
@@ -38,77 +38,51 @@ function buildPrompt(params: ArticleParams, index: number): string {
   const imageUrl = buildImageUrl(mainKeyword, settings.imageStyle ?? '');
   const minWords = settings.minWords ?? 800;
 
-  // Cálculo sugerido para forçar a IA a escrever mais
-  const suggestedParagraphs = Math.ceil(minWords / 80); 
+  // Cálculo para forçar volume real
+  const pCount = Math.max(15, Math.ceil(minWords / 70));
+  const h2Count = Math.max(6, Math.ceil(minWords / 200));
 
-  return `Você é um redator jornalístico sênior especializado em SEO e conteúdo editorial de prestígio, fluente em Português do Brasil (pt_BR).
+  return `Você é um Redator Chefe e Especialista em SEO de performance internacional.
+Sua tarefa é produzir um artigo MASSIVO, PROFUNDO e EXAUSTIVO com no MÍNIMO ${minWords} PALAVRAS.
 
-Crie um artigo ÚNICO, COMPLETO e EXTENSO sobre o tema: "${mainKeyword}".
-
-════════════════════════════════════════
-REQUISITO OBRIGATÓRIO DE TAMANHO — CRITICAL
-════════════════════════════════════════
-• O artigo DEVE ter NO MÍNIMO ${minWords} palavras. Este é seu objetivo principal.
-• Se você escrever menos de ${minWords} palavras, o trabalho será REJEITADO.
-• Para atingir este tamanho, você DEVE escrever pelo menos ${suggestedParagraphs} parágrafos longos e detalhados.
-• Cada parágrafo deve ter em média 80 a 120 palavras. Evite parágrafos curtos.
-• Desenvolva cada subtópico com profundidade máxima, usando exemplos, dados estatísticos (reais ou verossímeis), citações e análises detalhadas.
+TEMA: "${mainKeyword}"
 
 ════════════════════════════════════════
-DETALHES DO CONTEÚDO
+ALERTA DE TAMANHO (NÃO NEGOCIÁVEL)
 ════════════════════════════════════════
-• Tom: ${settings.tone}
-• Público-alvo: ${settings.targetAudience}
-• Nível de linguagem: ${settings.languageLevel}
+• O artigo DEVE ultrapassar ${minWords} palavras. 
+• Artigos curtos (menos de ${minWords} palavras) são considerados FALHA CRÍTICA.
+• Estrutura: Use pelo menos ${h2Count} subtítulos (<h2>) e ${pCount} parágrafos de texto denso.
+• Cada parágrafo deve ser uma "explosão" de informação, com pelo menos 8 linhas de texto corrido.
+• EXPLIQUE TUDO: Se citar um termo, defina-o. Se citar uma estratégia, dê 3 exemplos. Use analogias longas.
 
 ════════════════════════════════════════
-FORMATO HTML OBRIGATÓRIO
+REGRAS TÉCNICAS E LINKS
 ════════════════════════════════════════
-• Use APENAS as tags: <h1>, <h2>, <h3>, <p>, <a>, <img>, <b>
-• NÃO inclua cabeçalho HTML (<html>, <head>, <body>, <header>, <title>, <meta>)
-• Inicie o conteúdo diretamente com a tag <h1>
+• Tom: ${settings.tone} | Público: ${settings.targetAudience}
+• Link Interno: <a href="${url}" target="_blank"><b>${mainKeyword}</b></a>
+• Link Externo: Insira um link para Wikipedia ou fonte governamental/acadêmica no corpo do texto.
+• Imagem: <a href="${url}" target="_blank"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; height:auto; margin:20px 0;"></a> (Insira após o primeiro H2).
 
 ════════════════════════════════════════
-REGRAS DE IMAGEM
+ROTEIRO PARA ATINGIR ${minWords} PALAVRAS
 ════════════════════════════════════════
-• Insira UMA tag <img> entre o 1º e o 2º parágrafo, envolvida em <a> apontando para "${url}"
-• URL da imagem: ${imageUrl}
-• O alt da imagem deve ser o mesmo texto do <h1>
+1. INTRODUÇÃO (3 parágrafos): Contexto global, dor do leitor e promessa de solução.
+2. O QUE É ${mainKeyword}? (4 parágrafos): Definição técnica, histórica e semântica.
+3. POR QUE ISSO É VITAL HOJE? (4 parágrafos): Análise de mercado e tendências.
+4. GUIA DEFINITIVO: PASSO A PASSO (6 parágrafos): Como aplicar na prática com riqueza de detalhes.
+5. ERROS COMUNS E COMO EVITÁ-LOS (4 parágrafos): Liste 5 erros e explique cada um por extenso.
+6. O FUTURO DO SETOR (3 parágrafos): Previsões e inovações disruptivas.
+${settings.includeFAQ ? "7. FAQ MASTER: 5 perguntas complexas com respostas de 150 palavras cada." : ""}
 
 ════════════════════════════════════════
-REGRAS DE LINK
+PROIBIÇÃO DE CONCISÃO
 ════════════════════════════════════════
-• Link Interno: Insira UM link para "${url}" usando como âncora: ${mainKeyword} ou ${otherKeywords}
-• Link Externo: Insira UM link para Wikipedia ou fonte de autoridade no MEIO do artigo.
+✗ NÃO resuma. NÃO seja direto. NÃO economize palavras.
+✗ Se sentir que terminou, você não terminou. Crie um novo ângulo de análise e continue escrevendo.
+✗ Desenvolva narrativas longas para cada ponto citado.
 
-════════════════════════════════════════
-ESTRUTURA SUGERIDA PARA ALTO VOLUME
-════════════════════════════════════════
-1. Introdução contextualizada e provocativa (Lide).
-2. História e evolução do tema.
-3. Principais desafios e como superá-los.
-4. Análise técnica detalhada.
-5. Estudo de caso ou exemplos práticos de aplicação.
-6. Guia passo a passo ou melhores práticas.
-7. O impacto de "${mainKeyword}" no futuro do setor.
-8. Perspectivas de especialistas.
-${settings.includeFAQ ? "9. Seção de Perguntas Frequentes (FAQ) com pelo menos 5 perguntas detalhadas." : ""}
-
-════════════════════════════════════════
-PROIBIÇÕES ABSOLUTAS
-════════════════════════════════════════
-✗ NUNCA use "Conclusão", "Considerações Finais" ou similares como subtítulo.
-✗ NUNCA utilize listas (ul/ol) para "encher linguiça"; prefira texto corrido e bem argumentado.
-✗ NUNCA termine o artigo prematuramente. Se o texto estiver curto, crie um novo subtópico relevante e continue expandindo.
-
-════════════════════════════════════════
-VERIFICAÇÃO FINAL — ANTES DE ENTREGAR
-════════════════════════════════════════
-1. O texto tem pelo menos ${minWords} palavras? (Se não, escreva mais 3 parágrafos agora).
-2. O HTML está limpo e inicia com <h1>?
-3. O link para "${url}" está presente?
-
-Retorne APENAS o código HTML puro.`;
+Retorne APENAS o HTML puro começando com <h1>.`;
 }
 
 // ─────────────────────────────────────────────
