@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, XCircle, ChevronDown, Bot } from 'lucide-react';
+import {
+  Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, XCircle,
+  ChevronDown, Bot, Image as ImageIcon, Database, Zap,
+} from 'lucide-react';
 import { AppSettings, AI_MODELS, AIProvider } from '../types';
+import { isSupabaseConfigured } from '../services/supabaseService';
 
 interface SettingsFormProps {
   settings: AppSettings;
@@ -10,32 +14,40 @@ interface SettingsFormProps {
 interface KeyFieldProps {
   id: string;
   label: string;
-  provider: AIProvider;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   color: string;
+  linkUrl?: string;
+  linkLabel?: string;
 }
 
-function KeyField({ id, label, value, onChange, placeholder, color }: KeyFieldProps) {
+function KeyField({ id, label, value, onChange, placeholder, color, linkUrl, linkLabel }: KeyFieldProps) {
   const [show, setShow] = useState(false);
   const hasKey = value.trim().length > 0;
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-1">
         <label className={`text-xs font-bold uppercase tracking-widest ${color}`} htmlFor={id}>
           {label}
         </label>
-        {hasKey ? (
-          <span className="flex items-center gap-1 text-emerald-600 text-[10px] font-bold uppercase tracking-wider">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Configurada
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 text-rose-400 text-[10px] font-bold uppercase tracking-wider">
-            <XCircle className="w-3.5 h-3.5" /> Não configurada
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {linkUrl && (
+            <a href={linkUrl} target="_blank" rel="noopener" className="text-[10px] text-blue-500 hover:underline">
+              {linkLabel ?? 'Obter chave'}
+            </a>
+          )}
+          {hasKey ? (
+            <span className="flex items-center gap-1 text-emerald-600 text-[10px] font-bold uppercase tracking-wider">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Configurada
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-rose-400 text-[10px] font-bold uppercase tracking-wider">
+              <XCircle className="w-3.5 h-3.5" /> Não configurada
+            </span>
+          )}
+        </div>
       </div>
       <div className="relative">
         <input
@@ -63,26 +75,21 @@ function KeyField({ id, label, value, onChange, placeholder, color }: KeyFieldPr
 }
 
 export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
-  const [localSettings, setLocalSettings] = React.useState<AppSettings>(settings);
+  const [local, setLocal] = React.useState<AppSettings>(settings);
   const [saved, setSaved] = useState(false);
 
   const updateKey = (provider: keyof AppSettings['aiKeys'], value: string) => {
-    setLocalSettings(prev => ({
-      ...prev,
-      aiKeys: { ...prev.aiKeys, [provider]: value }
-    }));
+    setLocal(prev => ({ ...prev, aiKeys: { ...prev.aiKeys, [provider]: value } }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(localSettings);
+    onSave(local);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const geminiModelCount = AI_MODELS.filter(m => m.provider === 'gemini').length;
-  const openaiModelCount = AI_MODELS.filter(m => m.provider === 'openai').length;
-  const anthropicModelCount = AI_MODELS.filter(m => m.provider === 'anthropic').length;
+  const countByProvider = (p: AIProvider) => AI_MODELS.filter(m => m.provider === p).length;
 
   return (
     <div className="max-w-2xl mx-auto pb-12 px-4 md:px-0">
@@ -95,6 +102,18 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
+        {/* ── Status Supabase ── */}
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-xs font-medium ${
+          isSupabaseConfigured()
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : 'bg-amber-50 border-amber-200 text-amber-800'
+        }`}>
+          <Database className="w-4 h-4 flex-shrink-0" />
+          {isSupabaseConfigured()
+            ? '✅ Banco de dados Supabase conectado — configurações e histórico salvos na nuvem.'
+            : '⚠️ Supabase não configurado — dados salvos localmente no navegador. Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY ao .env para ativar a nuvem.'}
+        </div>
+
         {/* ── Seção: Editorial ── */}
         <div className="bg-surface-container-lowest rounded-xl p-6 md:p-8 shadow-[0_12px_40px_rgba(11,28,48,0.04)] space-y-6">
           <div className="flex items-center gap-2 mb-2">
@@ -103,6 +122,7 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Mínimo de Palavras */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2" htmlFor="minWords">
                 Mínimo de Palavras
@@ -112,13 +132,16 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
                 id="minWords"
                 type="number"
                 min="300"
-                max="3000"
+                max="5000"
                 step="100"
-                value={localSettings.minWords}
-                onChange={e => setLocalSettings({ ...localSettings, minWords: parseInt(e.target.value) })}
+                value={local.minWords}
+                onChange={e => setLocal({ ...local, minWords: Math.max(300, parseInt(e.target.value) || 300) })}
                 required
               />
+              <p className="text-[11px] text-outline mt-1.5">Recomendado: 800–2000 palavras</p>
             </div>
+
+            {/* Tom */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2" htmlFor="tone">
                 Tom da Escrita
@@ -127,8 +150,8 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
                 <select
                   className="w-full appearance-none bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface text-base focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer pr-10"
                   id="tone"
-                  value={localSettings.tone}
-                  onChange={e => setLocalSettings({ ...localSettings, tone: e.target.value })}
+                  value={local.tone}
+                  onChange={e => setLocal({ ...local, tone: e.target.value })}
                 >
                   <option value="Jornalístico Formal">Jornalístico Formal</option>
                   <option value="Conversacional e Leve">Conversacional e Leve</option>
@@ -142,6 +165,7 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Público-Alvo */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2" htmlFor="targetAudience">
                 Público-Alvo
@@ -150,12 +174,14 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
                 className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface text-base focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline/40"
                 id="targetAudience"
                 type="text"
-                placeholder="Ex: Profissionais de TI"
-                value={localSettings.targetAudience}
-                onChange={e => setLocalSettings({ ...localSettings, targetAudience: e.target.value })}
+                placeholder="Ex: Profissionais de TI, leitores curiosos, mães de primeira viagem..."
+                value={local.targetAudience}
+                onChange={e => setLocal({ ...local, targetAudience: e.target.value })}
                 required
               />
             </div>
+
+            {/* Nível de Linguagem */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2" htmlFor="languageLevel">
                 Nível de Linguagem
@@ -164,8 +190,8 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
                 <select
                   className="w-full appearance-none bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface text-base focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer pr-10"
                   id="languageLevel"
-                  value={localSettings.languageLevel}
-                  onChange={e => setLocalSettings({ ...localSettings, languageLevel: e.target.value })}
+                  value={local.languageLevel}
+                  onChange={e => setLocal({ ...local, languageLevel: e.target.value })}
                 >
                   <option value="Acessível (para todos)">Acessível (para todos)</option>
                   <option value="Intermediário">Intermediário</option>
@@ -176,17 +202,48 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
             </div>
           </div>
 
+          {/* FAQ */}
           <div className="flex items-center gap-3 p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
             <input
               type="checkbox"
               id="includeFAQ"
               className="w-5 h-5 text-primary border-outline-variant rounded focus:ring-primary cursor-pointer"
-              checked={localSettings.includeFAQ}
-              onChange={e => setLocalSettings({ ...localSettings, includeFAQ: e.target.checked })}
+              checked={local.includeFAQ}
+              onChange={e => setLocal({ ...local, includeFAQ: e.target.checked })}
             />
             <label htmlFor="includeFAQ" className="text-on-surface font-medium cursor-pointer text-sm">
               Incluir seção de Perguntas Frequentes (FAQ) ao final dos artigos
             </label>
+          </div>
+        </div>
+
+        {/* ── Seção: Imagens ── */}
+        <div className="bg-surface-container-lowest rounded-xl p-6 md:p-8 shadow-[0_12px_40px_rgba(11,28,48,0.04)] space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ImageIcon className="w-4 h-4 text-secondary" />
+            <span className="text-xs font-bold uppercase tracking-widest text-secondary">Imagens dos Artigos</span>
+          </div>
+
+          <p className="text-xs text-on-surface-variant leading-relaxed">
+            As imagens são buscadas automaticamente no <strong>Unsplash</strong> com base na palavra-chave principal do artigo.
+            Use o campo abaixo para refinar o estilo visual e obter imagens mais relevantes.
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2" htmlFor="imageStyle">
+              Estilo Visual das Imagens
+            </label>
+            <textarea
+              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface text-sm placeholder:text-outline/40 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              id="imageStyle"
+              rows={2}
+              placeholder='Ex: "fotografia profissional, fundo limpo" ou "natureza tropical, cores vibrantes" ou "tecnologia, escritório moderno"'
+              value={local.imageStyle ?? ''}
+              onChange={e => setLocal({ ...local, imageStyle: e.target.value })}
+            />
+            <p className="text-[11px] text-outline mt-1.5">
+              Se vazio, a busca usará apenas a palavra-chave principal do artigo. Quanto mais específico, melhor a relevância da imagem.
+            </p>
           </div>
         </div>
 
@@ -201,21 +258,18 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
             As chaves são armazenadas localmente no seu navegador e nunca enviadas a terceiros. Configure apenas os provedores que deseja usar.
           </p>
 
-          {/* Gemini */}
+          {/* Google Gemini */}
           <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/30 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base">🟢</span>
               <span className="text-sm font-semibold text-emerald-800">Google Gemini</span>
-              <span className="ml-auto text-[10px] text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">{geminiModelCount} modelos</span>
+              <span className="ml-auto text-[10px] text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('gemini')} modelos</span>
             </div>
             <KeyField
-              id="geminiKey"
-              label="Chave Gemini (GEMINI_API_KEY)"
-              provider="gemini"
-              value={localSettings.aiKeys.geminiKey}
-              onChange={v => updateKey('geminiKey', v)}
-              placeholder="AIzaSy..."
-              color="text-emerald-700"
+              id="geminiKey" label="Chave Gemini (GEMINI_API_KEY)"
+              value={local.aiKeys.geminiKey} onChange={v => updateKey('geminiKey', v)}
+              placeholder="AIzaSy..." color="text-emerald-700"
+              linkUrl="https://aistudio.google.com/app/apikey" linkLabel="Google AI Studio"
             />
           </div>
 
@@ -224,16 +278,13 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base">🔵</span>
               <span className="text-sm font-semibold text-blue-800">OpenAI</span>
-              <span className="ml-auto text-[10px] text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full font-medium">{openaiModelCount} modelos</span>
+              <span className="ml-auto text-[10px] text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('openai')} modelos</span>
             </div>
             <KeyField
-              id="openaiKey"
-              label="Chave OpenAI (OPENAI_API_KEY)"
-              provider="openai"
-              value={localSettings.aiKeys.openaiKey}
-              onChange={v => updateKey('openaiKey', v)}
-              placeholder="sk-proj-..."
-              color="text-blue-700"
+              id="openaiKey" label="Chave OpenAI (OPENAI_API_KEY)"
+              value={local.aiKeys.openaiKey} onChange={v => updateKey('openaiKey', v)}
+              placeholder="sk-proj-..." color="text-blue-700"
+              linkUrl="https://platform.openai.com/api-keys" linkLabel="OpenAI Platform"
             />
           </div>
 
@@ -242,16 +293,46 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base">🟠</span>
               <span className="text-sm font-semibold text-orange-800">Anthropic Claude</span>
-              <span className="ml-auto text-[10px] text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full font-medium">{anthropicModelCount} modelos</span>
+              <span className="ml-auto text-[10px] text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('anthropic')} modelos</span>
             </div>
             <KeyField
-              id="anthropicKey"
-              label="Chave Anthropic (ANTHROPIC_API_KEY)"
-              provider="anthropic"
-              value={localSettings.aiKeys.anthropicKey}
-              onChange={v => updateKey('anthropicKey', v)}
-              placeholder="sk-ant-..."
-              color="text-orange-700"
+              id="anthropicKey" label="Chave Anthropic (ANTHROPIC_API_KEY)"
+              value={local.aiKeys.anthropicKey} onChange={v => updateKey('anthropicKey', v)}
+              placeholder="sk-ant-..." color="text-orange-700"
+              linkUrl="https://console.anthropic.com/settings/keys" linkLabel="Anthropic Console"
+            />
+          </div>
+
+          {/* Groq */}
+          <div className="p-4 rounded-xl border border-purple-100 bg-purple-50/30 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">🟣</span>
+              <Zap className="w-3.5 h-3.5 text-purple-600" />
+              <span className="text-sm font-semibold text-purple-800">Groq — Ultra-Rápido</span>
+              <span className="ml-auto text-[10px] text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('groq')} modelos</span>
+            </div>
+            <p className="text-[11px] text-purple-700 -mt-1">Inferência extremamente rápida. Free tier generoso. Ideal para alto volume.</p>
+            <KeyField
+              id="groqKey" label="Chave Groq (GROQ_API_KEY)"
+              value={local.aiKeys.groqKey} onChange={v => updateKey('groqKey', v)}
+              placeholder="gsk_..." color="text-purple-700"
+              linkUrl="https://console.groq.com/keys" linkLabel="Groq Console"
+            />
+          </div>
+
+          {/* Mistral */}
+          <div className="p-4 rounded-xl border border-rose-100 bg-rose-50/30 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">🔶</span>
+              <span className="text-sm font-semibold text-rose-800">Mistral AI</span>
+              <span className="ml-auto text-[10px] text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('mistral')} modelos</span>
+            </div>
+            <p className="text-[11px] text-rose-700 -mt-1">Alta qualidade em múltiplos idiomas. Excelente custo-benefício para português.</p>
+            <KeyField
+              id="mistralKey" label="Chave Mistral (MISTRAL_API_KEY)"
+              value={local.aiKeys.mistralKey} onChange={v => updateKey('mistralKey', v)}
+              placeholder="..." color="text-rose-700"
+              linkUrl="https://console.mistral.ai/api-keys/" linkLabel="Mistral Console"
             />
           </div>
         </div>

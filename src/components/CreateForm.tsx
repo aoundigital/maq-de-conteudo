@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Link as LinkIcon, Sparkles, Bot, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Star, Link as LinkIcon, Sparkles, Bot, ChevronDown, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { generateArticles } from '../services/aiService';
 import JSZip from 'jszip';
 import { HistoryItem, AppSettings, AI_MODELS, getProviderFromModel } from '../types';
@@ -10,9 +10,11 @@ interface CreateFormProps {
 }
 
 const PROVIDER_LABEL: Record<string, { label: string; emoji: string; color: string; keyField: keyof AppSettings['aiKeys'] }> = {
-  gemini:    { label: 'Google Gemini', emoji: '🟢', color: 'text-emerald-700', keyField: 'geminiKey' },
-  openai:    { label: 'OpenAI',        emoji: '🔵', color: 'text-blue-700',    keyField: 'openaiKey' },
-  anthropic: { label: 'Anthropic',     emoji: '🟠', color: 'text-orange-700',  keyField: 'anthropicKey' },
+  gemini:    { label: 'Google Gemini',  emoji: '🟢', color: 'text-emerald-700', keyField: 'geminiKey' },
+  openai:    { label: 'OpenAI',         emoji: '🔵', color: 'text-blue-700',    keyField: 'openaiKey' },
+  anthropic: { label: 'Anthropic',      emoji: '🟠', color: 'text-orange-700',  keyField: 'anthropicKey' },
+  groq:      { label: 'Groq',           emoji: '🟣', color: 'text-purple-700',  keyField: 'groqKey' },
+  mistral:   { label: 'Mistral AI',     emoji: '🔶', color: 'text-rose-700',    keyField: 'mistralKey' },
 };
 
 export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
@@ -31,7 +33,7 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
 
   const currentProvider = getProviderFromModel(localModel);
   const currentProviderInfo = PROVIDER_LABEL[currentProvider];
-  const currentHasKey = settings.aiKeys[currentProviderInfo.keyField].trim().length > 0;
+  const currentHasKey = (settings.aiKeys[currentProviderInfo.keyField] ?? '').trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,10 +48,12 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
     setProgress({ current: 0, total: formData.quantity });
 
     try {
-      // Merge localModel into settings for this generation
       const settingsWithModel: AppSettings = { ...settings, selectedModel: localModel };
 
-      const articles = await generateArticles({ ...formData, settings: settingsWithModel });
+      const articles = await generateArticles(
+        { ...formData, settings: settingsWithModel },
+        (current) => setProgress(p => ({ ...p, current }))
+      );
 
       const zip = new JSZip();
       articles.forEach(art => zip.file(art.filename, art.content));
@@ -127,6 +131,16 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
                     <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
                   ))}
                 </optgroup>
+                <optgroup label="🟣 Groq — Ultra-Rápido (Llama)">
+                  {AI_MODELS.filter(m => m.provider === 'groq').map(m => (
+                    <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="🔶 Mistral AI">
+                  {AI_MODELS.filter(m => m.provider === 'mistral').map(m => (
+                    <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
+                  ))}
+                </optgroup>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
             </div>
@@ -144,7 +158,6 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
               )}
             </div>
 
-            {/* Aviso se sem chave */}
             {!currentHasKey && (
               <div className="mt-3 flex items-start gap-2 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5">
                 <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
@@ -185,7 +198,7 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
                 min="1"
                 max="20"
                 value={formData.quantity}
-                onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
                 required
               />
             </div>
@@ -244,6 +257,16 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
             </div>
           </div>
 
+          {/* ── Info imagem ── */}
+          {settings.imageStyle?.trim() && (
+            <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
+              <ImageIcon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700 leading-relaxed">
+                Imagens serão buscadas no Unsplash com o tema: <strong>"{formData.mainKeyword || 'palavra-chave'}"</strong> + estilo: <em>"{settings.imageStyle}"</em>
+              </p>
+            </div>
+          )}
+
           {/* ── Erro ── */}
           {error && (
             <div className="flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
@@ -257,13 +280,13 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
             {loading && progress.total > 0 && (
               <div className="mb-4 space-y-1">
                 <div className="flex justify-between text-xs text-secondary">
-                  <span>Gerando artigos...</span>
+                  <span>Gerando artigo {progress.current + 1} de {progress.total}...</span>
                   <span>{progress.current}/{progress.total}</span>
                 </div>
                 <div className="h-1.5 bg-surface-container rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 10}%` }}
+                    style={{ width: `${progress.total > 0 ? Math.max(5, (progress.current / progress.total) * 100) : 5}%` }}
                   />
                 </div>
               </div>
@@ -286,7 +309,7 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
               )}
             </button>
             <p className="text-center text-[10px] text-outline mt-4 uppercase tracking-tighter opacity-60">
-              O processamento pode levar até 45–60 segundos por artigo.
+              O processamento pode levar até 45–90 segundos por artigo, dependendo do tamanho configurado.
             </p>
           </div>
         </form>
@@ -307,8 +330,12 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
             <span className="text-xs text-secondary font-medium">Sistemas Operacionais</span>
           </div>
           <div className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-outline">Tamanho mínimo:</span>
+            <span className="text-xs font-mono font-bold text-primary">{settings.minWords} palavras</span>
+          </div>
+          <div className="mt-0.5 flex items-center gap-2">
             <span className="text-xs text-outline">Modelo ativo:</span>
-            <span className="text-xs font-mono font-medium text-on-surface">{localModel}</span>
+            <span className="text-xs font-mono font-medium text-on-surface truncate">{localModel}</span>
           </div>
         </div>
       </div>

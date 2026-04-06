@@ -3,7 +3,7 @@ import { BookOpen, UserCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (email: string) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -18,7 +18,7 @@ export default function Login({ onLogin }: LoginProps) {
     const MASTER_PASSWORD = import.meta.env.VITE_MASTER_PASSWORD || 'maquina@2026';
     
     if (email === MASTER_EMAIL && password === MASTER_PASSWORD) {
-      onLogin();
+      onLogin(email);
     } else {
       alert('E-mail ou senha incorretos. Verifique suas credenciais de acesso corporativo.');
     }

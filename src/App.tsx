@@ -6,6 +6,14 @@ import History from './components/History';
 import SettingsForm from './components/SettingsForm';
 import { HistoryItem, AppSettings } from './types';
 import { cn } from './lib/utils';
+import {
+  saveSettingsRemote,
+  loadSettingsRemote,
+  saveHistoryItemRemote,
+  loadHistoryRemote,
+  deleteHistoryItemRemote,
+  isSupabaseConfigured,
+} from './services/supabaseService';
 
 const DEFAULT_SETTINGS: AppSettings = {
   minWords: 800,
@@ -14,31 +22,34 @@ const DEFAULT_SETTINGS: AppSettings = {
   languageLevel: 'Acessível (para todos)',
   includeFAQ: false,
   selectedModel: 'gemini-2.0-flash',
+  imageStyle: '',
   aiKeys: {
     geminiKey: '',
     openaiKey: '',
     anthropicKey: '',
+    groqKey: '',
+    mistralKey: '',
   },
 };
 
+const LS_HISTORY = 'maquina_conteudo_history';
+const LS_SETTINGS = 'maquina_conteudo_settings';
+const LS_EMAIL = 'maquina_conteudo_email';
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [activeTab, setActiveTab] = useState<'create' | 'history' | 'settings'>('create');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
 
-  // Load history and settings from localStorage
+  // ── Load on mount ──────────────────────────────────────
   useEffect(() => {
-    const savedHistory = localStorage.getItem('maquina_conteudo_history');
-    if (savedHistory) {
-      try { setHistory(JSON.parse(savedHistory)); } catch { /* ignore */ }
-    }
-
-    const savedSettings = localStorage.getItem('maquina_conteudo_settings');
+    // Load settings from localStorage first (immediate)
+    const savedSettings = localStorage.getItem(LS_SETTINGS);
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings) as Partial<AppSettings>;
-        // Merge with defaults to handle missing keys after updates
         setSettings({
           ...DEFAULT_SETTINGS,
           ...parsed,
@@ -49,33 +60,88 @@ export default function App() {
         });
       } catch { /* ignore */ }
     }
+
+    // Load history from localStorage first
+    const savedHistory = localStorage.getItem(LS_HISTORY);
+    if (savedHistory) {
+      try { setHistory(JSON.parse(savedHistory)); } catch { /* ignore */ }
+    }
+
+    // Restore session
+    const savedEmail = localStorage.getItem(LS_EMAIL);
+    if (savedEmail) {
+      setUserEmail(savedEmail);
+      setIsAuthenticated(true);
+    }
   }, []);
 
+  // ── Sync from Supabase after login ────────────────────
+  useEffect(() => {
+    if (!isAuthenticated || !userEmail || !isSupabaseConfigured()) return;
+
+    (async () => {
+      // Load remote settings (overrides local if found)
+      const remoteSettings = await loadSettingsRemote(userEmail);
+      if (remoteSettings) {
+        const merged = {
+          ...DEFAULT_SETTINGS,
+          ...remoteSettings,
+          aiKeys: { ...DEFAULT_SETTINGS.aiKeys, ...(remoteSettings.aiKeys ?? {}) },
+        };
+        setSettings(merged);
+        localStorage.setItem(LS_SETTINGS, JSON.stringify(merged));
+      }
+
+      // Load remote history (overrides local if found)
+      const remoteHistory = await loadHistoryRemote(userEmail);
+      if (remoteHistory.length > 0) {
+        setHistory(remoteHistory);
+        localStorage.setItem(LS_HISTORY, JSON.stringify(remoteHistory));
+      }
+    })();
+  }, [isAuthenticated, userEmail]);
+
+  // ── Persistence helpers ───────────────────────────────
   const saveHistory = (newHistory: HistoryItem[]) => {
     setHistory(newHistory);
-    localStorage.setItem('maquina_conteudo_history', JSON.stringify(newHistory));
+    localStorage.setItem(LS_HISTORY, JSON.stringify(newHistory));
   };
 
-  const saveSettings = (newSettings: AppSettings) => {
+  const saveSettings = async (newSettings: AppSettings) => {
     setSettings(newSettings);
-    localStorage.setItem('maquina_conteudo_settings', JSON.stringify(newSettings));
+    localStorage.setItem(LS_SETTINGS, JSON.stringify(newSettings));
+    if (userEmail) await saveSettingsRemote(userEmail, newSettings);
   };
 
-  const handleAddHistory = (item: HistoryItem) => {
+  const handleAddHistory = async (item: HistoryItem) => {
     const newHistory = [item, ...history];
     saveHistory(newHistory);
+    if (userEmail) await saveHistoryItemRemote(userEmail, item);
     setActiveTab('history');
   };
 
-  const handleDeleteHistory = (id: string) => {
+  const handleDeleteHistory = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este registro?')) {
       const newHistory = history.filter(item => item.id !== id);
       saveHistory(newHistory);
+      await deleteHistoryItemRemote(id);
     }
   };
 
+  const handleLogin = (email: string) => {
+    setUserEmail(email);
+    localStorage.setItem(LS_EMAIL, email);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUserEmail('');
+    localStorage.removeItem(LS_EMAIL);
+  };
+
   if (!isAuthenticated) {
-    return <Login onLogin={() => setIsAuthenticated(true)} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   return (
@@ -91,41 +157,29 @@ export default function App() {
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
-            <button
-              onClick={() => setActiveTab('create')}
-              className={cn(
-                "text-sm font-medium px-3 py-1 rounded-lg transition-all",
-                activeTab === 'create' ? "text-primary font-bold" : "text-secondary hover:bg-surface-container-low"
-              )}
-            >
-              Criar
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={cn(
-                "text-sm font-medium px-3 py-1 rounded-lg transition-all",
-                activeTab === 'history' ? "text-primary font-bold" : "text-secondary hover:bg-surface-container-low"
-              )}
-            >
-              Histórico
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={cn(
-                "text-sm font-medium px-3 py-1 rounded-lg transition-all",
-                activeTab === 'settings' ? "text-primary font-bold" : "text-secondary hover:bg-surface-container-low"
-              )}
-            >
-              Configurações
-            </button>
+            {(['create', 'history', 'settings'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "text-sm font-medium px-3 py-1 rounded-lg transition-all",
+                  activeTab === tab ? "text-primary font-bold" : "text-secondary hover:bg-surface-container-low"
+                )}
+              >
+                {tab === 'create' ? 'Criar' : tab === 'history' ? 'Histórico' : 'Configurações'}
+              </button>
+            ))}
           </nav>
 
           <div className="flex items-center gap-4">
+            {userEmail && (
+              <span className="hidden md:block text-xs text-outline truncate max-w-[160px]">{userEmail}</span>
+            )}
             <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary text-xs font-bold">
-              MC
+              {userEmail ? userEmail[0].toUpperCase() : 'MC'}
             </div>
             <button
-              onClick={() => setIsAuthenticated(false)}
+              onClick={handleLogout}
               className="p-2 hover:bg-red-50 text-secondary hover:text-red-600 rounded-full transition-all"
               title="Sair"
             >
