@@ -38,99 +38,77 @@ function buildPrompt(params: ArticleParams, index: number): string {
   const imageUrl = buildImageUrl(mainKeyword, settings.imageStyle ?? '');
   const minWords = settings.minWords ?? 800;
 
+  // Cálculo sugerido para forçar a IA a escrever mais
+  const suggestedParagraphs = Math.ceil(minWords / 80); 
+
   return `Você é um redator jornalístico sênior especializado em SEO e conteúdo editorial de prestígio, fluente em Português do Brasil (pt_BR).
 
-Crie um artigo ÚNICO e ORIGINAL sobre o tema: "${mainKeyword}".
+Crie um artigo ÚNICO, COMPLETO e EXTENSO sobre o tema: "${mainKeyword}".
 
 ════════════════════════════════════════
-REQUISITO OBRIGATÓRIO DE TAMANHO
+REQUISITO OBRIGATÓRIO DE TAMANHO — CRITICAL
 ════════════════════════════════════════
-• O artigo DEVE ter NO MÍNIMO ${minWords} palavras — isso é INEGOCIÁVEL.
+• O artigo DEVE ter NO MÍNIMO ${minWords} palavras. Este é seu objetivo principal.
+• Se você escrever menos de ${minWords} palavras, o trabalho será REJEITADO.
+• Para atingir este tamanho, você DEVE escrever pelo menos ${suggestedParagraphs} parágrafos longos e detalhados.
+• Cada parágrafo deve ter em média 80 a 120 palavras. Evite parágrafos curtos.
+• Desenvolva cada subtópico com profundidade máxima, usando exemplos, dados estatísticos (reais ou verossímeis), citações e análises detalhadas.
+
+════════════════════════════════════════
+DETALHES DO CONTEÚDO
+════════════════════════════════════════
 • Tom: ${settings.tone}
 • Público-alvo: ${settings.targetAudience}
 • Nível de linguagem: ${settings.languageLevel}
-• Antes de finalizar, conte internamente as palavras. Se o texto tiver menos de ${minWords} palavras, CONTINUE ESCREVENDO até atingir ou superar esse número.
-• Artigos curtos são INACEITÁVEIS. Prefira sempre escrever a mais.
 
 ════════════════════════════════════════
 FORMATO HTML OBRIGATÓRIO
 ════════════════════════════════════════
 • Use APENAS as tags: <h1>, <h2>, <h3>, <p>, <a>, <img>, <b>
 • NÃO inclua cabeçalho HTML (<html>, <head>, <body>, <header>, <title>, <meta>)
-• NÃO use JavaScript
 • Inicie o conteúdo diretamente com a tag <h1>
 
 ════════════════════════════════════════
 REGRAS DE IMAGEM
 ════════════════════════════════════════
-• Insira UMA tag <img> entre o 1º e o 2º parágrafo, SEMPRE envolva a imagem em uma tag <a> apontando para "${url}" com target="_blank" rel="noopener"
-• Use EXATAMENTE esta URL de imagem (não invente outra): ${imageUrl}
-• Estrutura obrigatória: <a href="${url}" target="_blank" rel="noopener"><img src="${imageUrl}" alt="[título do artigo]" loading="lazy" width="1200" height="628" style="max-width:100%;height:auto;display:block;margin:1.5rem 0;"></a>
+• Insira UMA tag <img> entre o 1º e o 2º parágrafo, envolvida em <a> apontando para "${url}"
+• URL da imagem: ${imageUrl}
 • O alt da imagem deve ser o mesmo texto do <h1>
 
 ════════════════════════════════════════
 REGRAS DE LINK
 ════════════════════════════════════════
-• Insira UM link interno para "${url}" usando como âncora EXATAMENTE uma das palavras-chave: ${mainKeyword} ou ${otherKeywords}
-• Esse link deve estar no corpo do texto, contextualizado de forma absolutamente natural
-• Atributos obrigatórios: target="_blank" rel="noopener"
+• Link Interno: Insira UM link para "${url}" usando como âncora: ${mainKeyword} ou ${otherKeywords}
+• Link Externo: Insira UM link para Wikipedia ou fonte de autoridade no MEIO do artigo.
 
 ════════════════════════════════════════
-LINK EXTERNO DE AUTORIDADE (OBRIGATÓRIO)
+ESTRUTURA SUGERIDA PARA ALTO VOLUME
 ════════════════════════════════════════
-• Insira UM link para uma fonte externa de alta autoridade (Wikipedia em português, gov.br, sites de pesquisa científica, portais de referência do setor) relacionada ao tema
-• O link deve estar inserido no MEIO do artigo (não no início, não no final), de forma completamente natural dentro de um parágrafo
-• Âncora: use uma frase descritiva e natural (NÃO use "clique aqui", "saiba mais" ou o nome do site)
-• Atributos obrigatórios: target="_blank" rel="noopener"
+1. Introdução contextualizada e provocativa (Lide).
+2. História e evolução do tema.
+3. Principais desafios e como superá-los.
+4. Análise técnica detalhada.
+5. Estudo de caso ou exemplos práticos de aplicação.
+6. Guia passo a passo ou melhores práticas.
+7. O impacto de "${mainKeyword}" no futuro do setor.
+8. Perspectivas de especialistas.
+${settings.includeFAQ ? "9. Seção de Perguntas Frequentes (FAQ) com pelo menos 5 perguntas detalhadas." : ""}
 
 ════════════════════════════════════════
-REGRAS DE SEO
+PROIBIÇÕES ABSOLUTAS
 ════════════════════════════════════════
-• Palavra-chave principal: "${mainKeyword}" (use com densidade de 1–2%)
-• Palavras-chave secundárias: ${otherKeywords} (distribua naturalmente)
-• Use <b> para destacar palavras-chave, sinônimos e termos estratégicos
-• Tamanho MÍNIMO ABSOLUTO: ${minWords} palavras — NÃO NEGOCIE isso
+✗ NUNCA use "Conclusão", "Considerações Finais" ou similares como subtítulo.
+✗ NUNCA utilize listas (ul/ol) para "encher linguiça"; prefira texto corrido e bem argumentado.
+✗ NUNCA termine o artigo prematuramente. Se o texto estiver curto, crie um novo subtópico relevante e continue expandindo.
 
 ════════════════════════════════════════
-ESTRUTURA DO ARTIGO
+VERIFICAÇÃO FINAL — ANTES DE ENTREGAR
 ════════════════════════════════════════
-• Lide forte que prende o leitor
-• Exposição dos fatos com contexto e dados reais
-• Explicações aprofundadas com exemplos práticos
-• Depoimentos ou declarações de especialistas do setor (podem ser simulados mas realistas)
-• Análise crítica e ponto de vista editorial pessoal
-• Seção de perspectivas e tendências futuras
-${settings.includeFAQ ? "• Seção de Perguntas Frequentes ao final: use <h3> para as perguntas e <p> para as respostas (mínimo 3 perguntas)" : ""}
+1. O texto tem pelo menos ${minWords} palavras? (Se não, escreva mais 3 parágrafos agora).
+2. O HTML está limpo e inicia com <h1>?
+3. O link para "${url}" está presente?
 
-════════════════════════════════════════
-PROIBIÇÕES ABSOLUTAS — NUNCA FAÇA ISSO
-════════════════════════════════════════
-✗ NUNCA use "Conclusão", "Considerações Finais" ou "Conclusão Final" como subtítulo (h2/h3)
-✗ NUNCA escreva subtítulos no formato "Palavra: Explicação" (ex: "SEO: Por que é importante")
-✗ NUNCA use listas <ul> ou <ol> mais de UMA vez por artigo; se usar, máximo 5 itens
-✗ NUNCA comece parágrafos com "Em conclusão", "Portanto", "Dessa forma", "Em suma", "Logo"
-✗ NUNCA escreva um subtítulo que seja apenas uma reformulação do <h1>
-✗ NUNCA use linguagem de chatbot ou frases genéricas como "É importante destacar que..."
-
-════════════════════════════════════════
-DIFERENCIAÇÃO (IMPORTANTE)
-════════════════════════════════════════
-Este é o artigo NÚMERO ${index} de ${quantity} sobre o mesmo tema: "${mainKeyword}".
-Aborde um ângulo COMPLETAMENTE DIFERENTE dos outros artigos da série.
-Use dados, estudos, casos ou perspectivas distintas a cada artigo.
-Cliente: ${clientName}
-
-════════════════════════════════════════
-VERIFICAÇÃO FINAL OBRIGATÓRIA
-════════════════════════════════════════
-Antes de retornar o HTML, confirme internamente:
-1. ✅ IMAGEM COM LINK: Tag <img> com a URL "${imageUrl}" envolvida em <a> para "${url}"
-2. ✅ LINK INTERNO: Um <a> no texto para "${url}" usando a palavra-chave
-3. ✅ LINK EXTERNO: Um <a> para Wikipedia ou fonte de autoridade no MEIO do artigo
-4. ✅ TAMANHO: O artigo tem pelo menos ${minWords} palavras
-5. ✅ HTML PURO: Sem blocos de código, sem markdown, iniciando com <h1>
-
-Retorne APENAS o código HTML puro, começando diretamente com <h1>.`;
+Retorne APENAS o código HTML puro.`;
 }
 
 // ─────────────────────────────────────────────
