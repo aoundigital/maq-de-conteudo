@@ -81,8 +81,17 @@ Return ONLY the pure HTML starting with <h1>.`;
 // GEMINI
 async function generateWithGemini(prompt: string, apiKey: string, model: string): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
+  
+  // Trata nomenclaturas comerciais para as chaves reais de API (v1beta do Google)
+  let actualModel = model;
+  if (model.includes("3.1-pro") || model.includes("3.0-pro")) {
+    actualModel = "gemini-2.0-pro-exp-02-05";
+  } else if (model.includes("3.1-flash") || model.includes("3.0-flash")) {
+    actualModel = "gemini-2.0-flash";
+  }
+
   const response = await ai.models.generateContent({
-    model,
+    model: actualModel,
     contents: prompt,
     config: { maxOutputTokens: 8192, temperature: 0.8 },
   });
