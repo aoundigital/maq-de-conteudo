@@ -91,21 +91,33 @@ async function generateWithGemini(prompt: string, apiKey: string, model: string)
 
 // OPENAI
 function getOpenAIMaxTokens(model: string): number {
-  if (model === "gpt-4o" || model === "gpt-4o-mini") return 16384;
+  if (model === "gpt-4o" || model === "gpt-4o-mini" || model === "gpt-4.5-preview") return 16384;
+  if (model.startsWith("o1") || model.startsWith("o3")) return 32768;
   return 4096;
 }
 
 async function generateWithOpenAI(prompt: string, apiKey: string, model: string): Promise<string> {
+  const isLogicModel = model.startsWith("o1") || model.startsWith("o3");
+  
+  const body: any = {
+    model,
+    messages: [{ role: "user", content: prompt }],
+  };
+
+  // Logic models do not tolerate "temperature" and use "max_completion_tokens"
+  if (isLogicModel) {
+    body.max_completion_tokens = getOpenAIMaxTokens(model);
+  } else {
+    body.temperature = 0.8;
+    body.max_tokens = getOpenAIMaxTokens(model);
+  }
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.8,
-      max_tokens: getOpenAIMaxTokens(model),
-    }),
+    body: JSON.stringify(body),
   });
+  
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(`OpenAI error ${response.status}: ${(err as { error?: { message?: string } }).error?.message ?? response.statusText}`);

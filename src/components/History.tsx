@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Filter, Download, Trash2, FileArchive } from 'lucide-react';
-import { HistoryItem } from '../types';
+import { Search, Filter, Download, Trash2, FileArchive, Cpu } from 'lucide-react';
+import { HistoryItem, AI_MODELS } from '../types';
 import { formatDate } from '../lib/utils';
 import JSZip from 'jszip';
 
@@ -82,6 +82,7 @@ export default function History({ items, onDelete }: HistoryProps) {
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Cliente / Pauta</th>
                 <th className="px-6 py-4">Data</th>
+                <th className="px-6 py-4">Modelo</th>
                 <th className="px-6 py-4">Volume</th>
                 <th className="px-6 py-4 text-right">Ações</th>
               </tr>
@@ -102,6 +103,14 @@ export default function History({ items, onDelete }: HistoryProps) {
                     <p className="text-xs text-on-surface-variant mt-0.5">{item.clientName}</p>
                   </td>
                   <td className="px-6 py-5 text-sm text-on-surface-variant">{formatDate(item.date)}</td>
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-3.5 h-3.5 text-primary/60" />
+                      <span className="text-xs font-medium text-on-surface-variant bg-surface-container px-2 py-1 rounded-md border border-outline-variant/10">
+                        {AI_MODELS.find(m => m.id === item.modelUsed)?.name || item.modelUsed || 'N/A'}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-6 py-5 text-sm text-on-surface-variant">{item.quantity} Artigos</td>
                   <td className="px-6 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -125,7 +134,7 @@ export default function History({ items, onDelete }: HistoryProps) {
               ))}
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-outline">
+                  <td colSpan={6} className="px-6 py-12 text-center text-outline">
                     Nenhum registro encontrado.
                   </td>
                 </tr>
@@ -143,7 +152,13 @@ export default function History({ items, onDelete }: HistoryProps) {
                 <span className="text-xs text-on-surface-variant">{formatDate(item.date)}</span>
               </div>
               <h3 className="font-serif text-xl text-on-surface mb-1 leading-tight">{item.mainKeyword}</h3>
-              <p className="text-sm text-on-surface-variant mb-4">Cliente: {item.clientName} • {item.quantity} Artigos</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <p className="text-sm text-on-surface-variant">Cliente: {item.clientName} • {item.quantity} Artigos</p>
+                <span className="text-[10px] font-bold text-primary/70 bg-primary/5 px-2 py-0.5 rounded border border-primary/10 flex items-center gap-1">
+                  <Cpu className="w-3 h-3" />
+                  {AI_MODELS.find(m => m.id === item.modelUsed)?.name || item.modelUsed || 'N/A'}
+                </span>
+              </div>
               <div className="flex items-center justify-between pt-4 border-t border-surface-container">
                 <button
                   onClick={() => handleDownload(item)}

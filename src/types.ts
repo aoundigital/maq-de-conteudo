@@ -54,133 +54,145 @@ export interface AIModel {
 export const AI_MODELS: AIModel[] = [
   // ── Google Gemini ──────────────────────────────────────
   {
-    id: 'gemini-2.5-flash-preview-04-17',
-    name: 'Gemini 2.5 Flash',
+    id: 'gemini-3.1-pro',
+    name: 'Gemini 3.1 Pro',
     provider: 'gemini',
-    description: '⭐ Melhor custo-benefício — raciocínio rápido e artigos longos',
+    description: '⭐ Última Geração (3.1 Promax) — Maior capacidade de raciocínio, escrita imersiva e super contexto',
+  },
+  {
+    id: 'gemini-3.1-flash',
+    name: 'Gemini 3.1 Flash',
+    provider: 'gemini',
+    description: 'A versão Flash mais recém atualizada. Extremamente veloz, menor custo.',
+  },
+  {
+    id: 'gemini-3.0-pro',
+    name: 'Gemini 3.0 Pro',
+    provider: 'gemini',
+    description: 'Geração avançada com altíssima qualidade de redação complexa.',
+  },
+  {
+    id: 'gemini-3.0-flash',
+    name: 'Gemini 3.0 Flash',
+    provider: 'gemini',
+    description: 'Rápido, confiável e focado na linha 3.0.',
   },
   {
     id: 'gemini-2.0-flash',
     name: 'Gemini 2.0 Flash',
     provider: 'gemini',
-    description: 'Rápido, confiável e econômico (recomendado para volume)',
+    description: 'Geração anterior — Equilíbrio sólido entre velocidade e razão',
   },
   {
-    id: 'gemini-2.0-flash-lite',
-    name: 'Gemini 2.0 Flash Lite',
-    provider: 'gemini',
-    description: 'Mais leve — ideal para testes e alto volume com baixo custo',
-  },
-  {
-    id: 'gemini-1.5-pro-latest',
+    id: 'gemini-1.5-pro',
     name: 'Gemini 1.5 Pro',
     provider: 'gemini',
-    description: 'Contexto de 1M tokens — ótimo para artigos muito longos',
-  },
-  {
-    id: 'gemini-1.5-flash-latest',
-    name: 'Gemini 1.5 Flash',
-    provider: 'gemini',
-    description: 'Veloz e eficiente — bom equilíbrio para produção em série',
+    description: 'Clássico de contexto gigante (2M tokens) — Excelente para MEGATEXTOS',
   },
 
   // ── OpenAI ─────────────────────────────────────────────
   {
+    id: 'o3-mini',
+    name: 'OpenAI o3-mini',
+    provider: 'openai',
+    description: '🤖 Maior raciocínio lógico e velocidade — Excelente em Megaposts',
+  },
+  {
+    id: 'o1',
+    name: 'OpenAI o1',
+    provider: 'openai',
+    description: '🤖 Raciocínio profundo e super complexidade — O mais avançado da OpenAI',
+  },
+  {
     id: 'gpt-4o',
     name: 'GPT-4o',
     provider: 'openai',
-    description: '⭐ Melhor da OpenAI — excelente qualidade e velocidade',
+    description: '⭐ Rápido e de enorme qualidade. O clássico atualizado.',
+  },
+  {
+    id: 'gpt-4.5-preview',
+    name: 'GPT-4.5 Preview',
+    provider: 'openai',
+    description: 'Pioneirismo — Máxima imersão narrativa e fluidez escrita',
   },
   {
     id: 'gpt-4o-mini',
     name: 'GPT-4o Mini',
     provider: 'openai',
-    description: 'Econômico e rápido — ótimo para alto volume',
-  },
-  {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    provider: 'openai',
-    description: 'Alta capacidade, contexto longo (128k tokens)',
-  },
-  {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    provider: 'openai',
-    description: 'Ultra econômico — para volume muito alto com custo mínimo',
+    description: 'Econômico e rápido — Suporta textos grandes num custo baixo',
   },
 
   // ── Anthropic Claude ───────────────────────────────────
   {
+    id: 'claude-3-7-sonnet-20250219',
+    name: 'Claude 3.7 Sonnet',
+    provider: 'anthropic',
+    description: '⭐ Topo de linha atual — A melhor escrita editorial em PT-BR',
+  },
+  {
     id: 'claude-3-5-sonnet-20241022',
     name: 'Claude 3.5 Sonnet',
     provider: 'anthropic',
-    description: '⭐ Melhor da Anthropic — escrita excepcional em português',
+    description: 'Geração excelente, raciocínio lógico forte e texto humano',
   },
   {
     id: 'claude-3-5-haiku-20241022',
     name: 'Claude 3.5 Haiku',
     provider: 'anthropic',
-    description: 'Rápido e econômico — qualidade sólida para produção em série',
+    description: 'Veloz e competente para produção de múltiplos artigos',
   },
   {
     id: 'claude-3-opus-20240229',
     name: 'Claude 3 Opus',
     provider: 'anthropic',
-    description: 'Máximo poder — artigos de alta complexidade e profundidade',
-  },
-  {
-    id: 'claude-3-haiku-20240307',
-    name: 'Claude 3 Haiku',
-    provider: 'anthropic',
-    description: 'Mais leve e rápido — bom para volume alto com custo baixo',
+    description: 'Modelo pesado para máxima complexidade analítica',
   },
 
-  // ── Groq (Llama ultra-rápido) ──────────────────────────
+  // ── Groq (Ultra-rápido & DeepSeek) ─────────────────────
+  {
+    id: 'deepseek-r1-distill-llama-70b',
+    name: 'DeepSeek R1 (Llama 70B)',
+    provider: 'groq',
+    description: '🤖 Forte lógica de raciocínio da engine r1 de forma rápida (Groq)',
+  },
   {
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3 70B',
     provider: 'groq',
-    description: '⭐ Ultra-rápido via Groq — excelente para artigos em PT-BR',
-  },
-  {
-    id: 'llama-4-scout-17b-16e-instruct',
-    name: 'Llama 4 Scout',
-    provider: 'groq',
-    description: 'Mais recente do Meta — contexto longo e alta performance',
+    description: '⭐ Open source mais poderoso da Meta — Ótimo vocabulário',
   },
   {
     id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B Instant',
+    name: 'Llama 3.1 8B',
     provider: 'groq',
-    description: 'Velocidade máxima — ideal para volume massivo a custo zero',
+    description: 'O mais veloz de todos — Use para tarefas extremamente altas sem travar',
   },
   {
     id: 'mixtral-8x7b-32768',
-    name: 'Mixtral 8x7B',
+    name: 'Mixtral 8x7B (32k)',
     provider: 'groq',
-    description: 'Mistral via Groq — contexto 32k, excelente multilíngue',
+    description: 'Grande capacidade de contexto com velocidade do Groq',
   },
 
   // ── Mistral AI ─────────────────────────────────────────
   {
     id: 'mistral-large-latest',
-    name: 'Mistral Large',
+    name: 'Mistral Large 2',
     provider: 'mistral',
-    description: '⭐ Topo de linha Mistral — excelente em português e SEO',
+    description: '⭐ Modelo premium da Mistral, fluência impecável',
   },
   {
-    id: 'mistral-small-latest',
-    name: 'Mistral Small',
+    id: 'pixtral-large-2411',
+    name: 'Pixtral Large',
     provider: 'mistral',
-    description: 'Econômico e veloz — ótimo custo-benefício para produção',
+    description: 'Novo modelo da série premium focado em alta compreensão',
   },
   {
     id: 'open-mistral-nemo',
     name: 'Mistral Nemo',
     provider: 'mistral',
-    description: 'Open source — contexto 128k, ótimo para artigos longos',
-  },
+    description: 'Aceita ATÉ 128k de tokens de contexto numa rede open-source',
+  }
 ];
 
 export function getProviderFromModel(modelId: string): AIProvider {
