@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { AppSettings, getProviderFromModel } from "../types";
+import DOMPurify from "dompurify";
 
 export interface ArticleParams {
   clientName: string;
@@ -19,141 +20,101 @@ export interface GeneratedArticle {
   clientName: string;
 }
 
-// ─────────────────────────────────────────────
-// IMAGE URL — LoremFlickr (mais estável para buscas dinâmicas)
-// ─────────────────────────────────────────────
+// IMAGE URL
 function buildImageUrl(mainKeyword: string, imageStyle: string): string {
   const query = imageStyle?.trim()
-    ? encodeURIComponent(`${mainKeyword},${imageStyle.replace(/\s+/g, ',')}`)
+    ? encodeURIComponent(`${mainKeyword},${imageStyle.replace(/\s+/g, ",")}`)
     : encodeURIComponent(mainKeyword);
-  // LoremFlickr é excelente para buscas dinâmicas sem API Key
   return `https://loremflickr.com/1200/628/${query}?lock=${Math.floor(Math.random() * 1000)}`;
 }
 
-// ─────────────────────────────────────────────
-// PROMPT BUILDER
-// ─────────────────────────────────────────────
-function buildPrompt(params: ArticleParams, index: number): string {
-  const { clientName, quantity, mainKeyword, otherKeywords, url, settings } = params;
-  const imageUrl = buildImageUrl(mainKeyword, settings.imageStyle ?? '');
-  const minWords = settings.minWords ?? 800;
+// CVE-7: Sanitize AI-generated HTML to prevent stored XSS
+function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["h1", "h2", "h3", "p", "a", "img", "b", "ul", "ol", "li", "strong", "em", "br"],
+    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "style"],
+    ALLOW_DATA_ATTR: false,
+    FORCE_BODY: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  });
+}
 
-  // Cálculo de volume agressivo
+// PROMPT BUILDER
+function buildPrompt(params: ArticleParams, index: number): string {
+  const { quantity, mainKeyword, otherKeywords, url, settings } = params;
+  const imageUrl = buildImageUrl(mainKeyword, settings.imageStyle ?? "");
+  const minWords = settings.minWords ?? 800;
   const pCount = Math.max(18, Math.ceil(minWords / 65));
   const h2Count = Math.max(7, Math.ceil(minWords / 150));
 
-  return `Você é um Redator Chefe de um grande portal de notícias e autoridade em SEO.
-Sua missão é produzir um "MEGAPOST" épico sobre "${mainKeyword}".
+  return `You are a Chief Editor of a major news portal and SEO authority.
+Your mission is to produce an epic MEGAPOST about "${mainKeyword}" in Brazilian Portuguese (pt-BR).
 
-════════════════════════════════════════
-ALVOS DE PERFORMANCE (OBRIGATÓRIO)
-════════════════════════════════════════
-• VOCÊ DEVE ESCREVER NO MÍNIMO ${minWords} PALAVRAS. 
-• Use exatamente ${h2Count} subtítulos (<h2>) para dividir o conteúdo.
-• Escreva pelo menos ${pCount} parágrafos longos (mínimo de 100 palavras por parágrafo).
-• Se o artigo estiver curto, o sistema falhará. PREENCHA cada seção com o máximo de detalhes técnicos, históricos e analíticos.
+PERFORMANCE TARGETS (MANDATORY)
+- Write AT LEAST ${minWords} WORDS.
+- Use exactly ${h2Count} subheadings (<h2>) to divide the content.
+- Write at least ${pCount} long paragraphs (minimum 100 words per paragraph).
 
-════════════════════════════════════════
-REGRAS TÉCNICAS
-════════════════════════════════════════
-• Tom: ${settings.tone} | Nível: ${settings.languageLevel}
-• Formato: HTML PURO (<h1>, <h2>, <p>, <a>, <img>, <b>).
-• Imagem: <a href="${url}" target="_blank"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a> (Insira após o 1º H2).
-• Link Interno: Link para "${url}" com a palavra-chave "${mainKeyword}".
-• Link Externo: Link para uma fonte de autoridade global no meio do texto.
+TECHNICAL RULES
+- Tone: ${settings.tone} | Level: ${settings.languageLevel}
+- Format: PURE HTML (<h1>, <h2>, <p>, <a>, <img>, <b>).
+- Image tag (insert after the 1st H2): <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
+- Internal link: Link to "${url}" using "${mainKeyword}" as anchor text.
+- External link: Link to a global authority source in the middle of the text.
+- Secondary keywords to include naturally: ${otherKeywords}.
 
-════════════════════════════════════════
-ESTRUTURA DE EXPANSÃO (PARA BATER ${minWords} PALAVRAS)
-════════════════════════════════════════
-1. LIDE MAGNÉTICA: Introdução profunda sobre o impacto de "${mainKeyword}".
-2. MAPEAMENTO COMPLETO: O que é, fundamentos e por que importa agora.
-3. ANÁLISE DE PROFUNDIDADE: Dados, estatísticas e tendências do setor.
-4. GUIA PRÁTICO: Passo a passo extremamente detalhado de como implementar/usar.
-5. DESAFIOS E MITOS: Desminta crenças comuns e resolva dores complexas.
-6. CASOS DE USO: Exemplos detalhados e narrativas de sucesso.
-7. O FUTURO: Para onde caminha este tema nos próximos 10 anos.
-${settings.includeFAQ ? "8. MEGA FAQ: 5 perguntas com respostas completas de no mínimo 3 parágrafos cada." : ""}
+STRUCTURE
+1. INTRO: Deep impact of "${mainKeyword}".
+2. OVERVIEW: What it is, foundations, and why it matters now.
+3. IN-DEPTH ANALYSIS: Data, statistics, and trends.
+4. PRACTICAL GUIDE: Step-by-step implementation.
+5. CHALLENGES AND MYTHS: Common misconceptions.
+6. USE CASES: Detailed examples and success stories.
+7. THE FUTURE: Where this topic is heading.
+${settings.includeFAQ ? "8. FAQ: 5 questions with complete answers." : ""}
 
-════════════════════════════════════════
-VERIFICAÇÃO DE OURO
-════════════════════════════════════════
-✗ NÃO resuma. A prolixidade técnica é valorizada aqui. 
-✗ NÃO entregue menos do que o solicitado. Continue expandindo cada subtítulo com mais 2 parágrafos se necessário.
-✗ Use negrito <b> para destacar conceitos importantes.
+This is article number ${index} of ${quantity}. It MUST approach a different angle.
 
-Retorne APENAS o código HTML puro começando com <h1>.`;
-}� ${mainKeyword}? (4 parágrafos): Definição técnica, histórica e semântica.
-3. POR QUE ISSO É VITAL HOJE? (4 parágrafos): Análise de mercado e tendências.
-4. GUIA DEFINITIVO: PASSO A PASSO (6 parágrafos): Como aplicar na prática com riqueza de detalhes.
-5. ERROS COMUNS E COMO EVITÁ-LOS (4 parágrafos): Liste 5 erros e explique cada um por extenso.
-6. O FUTURO DO SETOR (3 parágrafos): Previsões e inovações disruptivas.
-${settings.includeFAQ ? "7. FAQ MASTER: 5 perguntas complexas com respostas de 150 palavras cada." : ""}
-
-════════════════════════════════════════
-PROIBIÇÃO DE CONCISÃO
-════════════════════════════════════════
-✗ NÃO resuma. NÃO seja direto. NÃO economize palavras.
-✗ Se sentir que terminou, você não terminou. Crie um novo ângulo de análise e continue escrevendo.
-✗ Desenvolva narrativas longas para cada ponto citado.
-
-Retorne APENAS o HTML puro começando com <h1>.`;
+Return ONLY the pure HTML starting with <h1>.`;
 }
 
-// ─────────────────────────────────────────────
 // GEMINI
-// ─────────────────────────────────────────────
 async function generateWithGemini(prompt: string, apiKey: string, model: string): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
     model,
     contents: prompt,
-    config: {
-      maxOutputTokens: 8192,
-      temperature: 0.8,
-    },
+    config: { maxOutputTokens: 8192, temperature: 0.8 },
   });
   return response.text ?? "";
 }
 
-// ─────────────────────────────────────────────
 // OPENAI
-// ─────────────────────────────────────────────
 function getOpenAIMaxTokens(model: string): number {
-  // gpt-4o and gpt-4o-mini support up to 16384 output tokens
-  if (model === 'gpt-4o' || model === 'gpt-4o-mini') return 16384;
-  // gpt-3.5-turbo and gpt-4-turbo max out at 4096
+  if (model === "gpt-4o" || model === "gpt-4o-mini") return 16384;
   return 4096;
 }
 
 async function generateWithOpenAI(prompt: string, apiKey: string, model: string): Promise<string> {
-  const body: Record<string, unknown> = {
-    model,
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.8,
-    max_tokens: getOpenAIMaxTokens(model),
-  };
-
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.8,
+      max_tokens: getOpenAIMaxTokens(model),
+    }),
   });
-
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(`OpenAI error ${response.status}: ${(err as { error?: { message?: string } }).error?.message ?? response.statusText}`);
   }
-
   const data = await response.json() as { choices: { message: { content: string } }[] };
   return data.choices[0]?.message?.content ?? "";
 }
 
-// ─────────────────────────────────────────────
 // ANTHROPIC
-// ─────────────────────────────────────────────
 async function generateWithAnthropic(prompt: string, apiKey: string, model: string): Promise<string> {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -169,26 +130,19 @@ async function generateWithAnthropic(prompt: string, apiKey: string, model: stri
       messages: [{ role: "user", content: prompt }],
     }),
   });
-
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(`Anthropic error ${response.status}: ${(err as { error?: { message?: string } }).error?.message ?? response.statusText}`);
   }
-
   const data = await response.json() as { content: { type: string; text: string }[] };
-  return data.content.find(c => c.type === "text")?.text ?? "";
+  return data.content.find((c) => c.type === "text")?.text ?? "";
 }
 
-// ─────────────────────────────────────────────
-// GROQ (compatível com OpenAI)
-// ─────────────────────────────────────────────
+// GROQ
 async function generateWithGroq(prompt: string, apiKey: string, model: string): Promise<string> {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model,
       messages: [{ role: "user", content: prompt }],
@@ -196,26 +150,19 @@ async function generateWithGroq(prompt: string, apiKey: string, model: string): 
       max_tokens: 8192,
     }),
   });
-
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(`Groq error ${response.status}: ${(err as { error?: { message?: string } }).error?.message ?? response.statusText}`);
   }
-
   const data = await response.json() as { choices: { message: { content: string } }[] };
   return data.choices[0]?.message?.content ?? "";
 }
 
-// ─────────────────────────────────────────────
 // MISTRAL
-// ─────────────────────────────────────────────
 async function generateWithMistral(prompt: string, apiKey: string, model: string): Promise<string> {
   const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model,
       messages: [{ role: "user", content: prompt }],
@@ -223,19 +170,15 @@ async function generateWithMistral(prompt: string, apiKey: string, model: string
       max_tokens: 8192,
     }),
   });
-
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(`Mistral error ${response.status}: ${(err as { error?: { message?: string } }).error?.message ?? response.statusText}`);
   }
-
   const data = await response.json() as { choices: { message: { content: string } }[] };
   return data.choices[0]?.message?.content ?? "";
 }
 
-// ─────────────────────────────────────────────
 // MAIN EXPORT
-// ─────────────────────────────────────────────
 export async function generateArticles(
   params: ArticleParams,
   onProgress?: (current: number) => void
@@ -253,45 +196,48 @@ export async function generateArticles(
   };
 
   const apiKey = keyMap[provider];
-
   if (!apiKey) {
-    throw new Error(`Chave de API não configurada para o provedor ${provider}. Acesse Configurações → Inteligências Artificiais.`);
+    throw new Error(`API key not configured for provider ${provider}. Go to Settings -> AI Keys.`);
   }
 
   const articles: GeneratedArticle[] = [];
 
   for (let i = 1; i <= quantity; i++) {
     const prompt = buildPrompt(params, i);
-
-    let htmlContent = "";
+    let rawHtml = "";
 
     switch (provider) {
       case "gemini":
-        htmlContent = await generateWithGemini(prompt, apiKey, selectedModel);
+        rawHtml = await generateWithGemini(prompt, apiKey, selectedModel);
         break;
       case "openai":
-        htmlContent = await generateWithOpenAI(prompt, apiKey, selectedModel);
+        rawHtml = await generateWithOpenAI(prompt, apiKey, selectedModel);
         break;
       case "anthropic":
-        htmlContent = await generateWithAnthropic(prompt, apiKey, selectedModel);
+        rawHtml = await generateWithAnthropic(prompt, apiKey, selectedModel);
         break;
       case "groq":
-        htmlContent = await generateWithGroq(prompt, apiKey, selectedModel);
+        rawHtml = await generateWithGroq(prompt, apiKey, selectedModel);
         break;
       case "mistral":
-        htmlContent = await generateWithMistral(prompt, apiKey, selectedModel);
+        rawHtml = await generateWithMistral(prompt, apiKey, selectedModel);
         break;
     }
 
-    // Strip markdown code fences if any model wraps in ```html ... ```
-    htmlContent = htmlContent
+    // Strip markdown code fences
+    rawHtml = rawHtml
       .replace(/^```html\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/\s*```\s*$/i, "")
       .trim();
 
+    // CVE-7: Sanitize before storing - prevents stored XSS
+    const htmlContent = sanitizeHtml(rawHtml);
+
     const titleMatch = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i);
-    const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "") : `Artigo ${i} — ${params.mainKeyword}`;
+    const title = titleMatch
+      ? titleMatch[1].replace(/<[^>]+>/g, "")
+      : `Article ${i} - ${params.mainKeyword}`;
 
     articles.push({
       id: crypto.randomUUID(),

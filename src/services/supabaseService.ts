@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 import { AppSettings, HistoryItem } from '../types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
@@ -12,9 +12,44 @@ export function isSupabaseConfigured(): boolean {
 
 function getClient(): SupabaseClient {
   if (!_client) {
-    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    });
   }
   return _client;
+}
+
+/* ─── Auth ──────────────────────────────────────────────── */
+
+export async function signIn(email: string, password: string): Promise<{ error: string | null }> {
+  if (!isSupabaseConfigured()) {
+    return { error: 'Supabase não configurado.' };
+  }
+  const { error } = await getClient().auth.signInWithPassword({ email, password });
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+export async function signOut(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  await getClient().auth.signOut();
+}
+
+export async function getSession(): Promise<Session | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data } = await getClient().auth.getSession();
+  return data.session;
+}
+
+export function onAuthStateChange(callback: (session: Session | null) => void) {
+  if (!isSupabaseConfigured()) return { data: { subscription: { unsubscribe: () => {} } } };
+  return getClient().auth.onAuthStateChange((_event, session) => {
+    callback(session);
+  });
 }
 
 /* ─── Settings ─────────────────────────────────────────── */

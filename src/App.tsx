@@ -13,6 +13,9 @@ import {
   loadHistoryRemote,
   deleteHistoryItemRemote,
   isSupabaseConfigured,
+  getSession,
+  signOut,
+  onAuthStateChange,
 } from './services/supabaseService';
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -34,7 +37,8 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 const LS_HISTORY = 'maquina_conteudo_history';
 const LS_SETTINGS = 'maquina_conteudo_settings';
-const LS_EMAIL = 'maquina_conteudo_email';
+// CVE-6: Email stored in sessionStorage (cleared on tab close), not localStorage
+const SESSION_EMAIL = 'maquina_conteudo_email';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,10 +46,47 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'create' | 'history' | 'settings'>('create');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // ── Load on mount ──────────────────────────────────────
+  // ── Auth: restore session via Supabase ─────────────────
   useEffect(() => {
-    // Load settings from localStorage first (immediate)
+    const bootstrapAuth = async () => {
+      // If Supabase is configured, use its session management
+      if (isSupabaseConfigured()) {
+        const session = await getSession();
+        if (session?.user?.email) {
+          setUserEmail(session.user.email);
+          setIsAuthenticated(true);
+        }
+      } else {
+        // Fallback: local session via sessionStorage (tab-scoped)
+        const savedEmail = sessionStorage.getItem(SESSION_EMAIL);
+        if (savedEmail) {
+          setUserEmail(savedEmail);
+          setIsAuthenticated(true);
+        }
+      }
+      setAuthLoading(false);
+    };
+
+    bootstrapAuth();
+
+    // Subscribe to auth state changes (handles token refresh, signout in other tabs, etc.)
+    const { data: { subscription } } = onAuthStateChange((session) => {
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+        setIsAuthenticated(true);
+      } else {
+        setUserEmail('');
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Load local data on mount ───────────────────────────
+  useEffect(() => {
     const savedSettings = localStorage.getItem(LS_SETTINGS);
     if (savedSettings) {
       try {
@@ -61,17 +102,9 @@ export default function App() {
       } catch { /* ignore */ }
     }
 
-    // Load history from localStorage first
     const savedHistory = localStorage.getItem(LS_HISTORY);
     if (savedHistory) {
       try { setHistory(JSON.parse(savedHistory)); } catch { /* ignore */ }
-    }
-
-    // Restore session
-    const savedEmail = localStorage.getItem(LS_EMAIL);
-    if (savedEmail) {
-      setUserEmail(savedEmail);
-      setIsAuthenticated(true);
     }
   }, []);
 
@@ -80,7 +113,6 @@ export default function App() {
     if (!isAuthenticated || !userEmail || !isSupabaseConfigured()) return;
 
     (async () => {
-      // Load remote settings (overrides local if found)
       const remoteSettings = await loadSettingsRemote(userEmail);
       if (remoteSettings) {
         const merged = {
@@ -92,7 +124,6 @@ export default function App() {
         localStorage.setItem(LS_SETTINGS, JSON.stringify(merged));
       }
 
-      // Load remote history (overrides local if found)
       const remoteHistory = await loadHistoryRemote(userEmail);
       if (remoteHistory.length > 0) {
         setHistory(remoteHistory);
@@ -130,15 +161,27 @@ export default function App() {
 
   const handleLogin = (email: string) => {
     setUserEmail(email);
-    localStorage.setItem(LS_EMAIL, email);
+    sessionStorage.setItem(SESSION_EMAIL, email); // tab-scoped, not persistent
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     setIsAuthenticated(false);
     setUserEmail('');
-    localStorage.removeItem(LS_EMAIL);
+    sessionStorage.removeItem(SESSION_EMAIL);
+    // Clear sensitive cached data on logout
+    setSettings(DEFAULT_SETTINGS);
+    setHistory([]);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
