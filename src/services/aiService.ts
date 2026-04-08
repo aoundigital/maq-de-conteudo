@@ -58,6 +58,7 @@ PERFORMANCE TARGETS (MANDATORY)
 TECHNICAL RULES
 - Tone: ${settings.tone} | Level: ${settings.languageLevel}
 - Format: PURE HTML (<h1>, <h2>, <p>, <a>, <img>, <b>).
+- SUBHEADING STYLE: DO NOT use explanatory prefixes with a colon in your subheadings (e.g., NEVER write "Visão geral: Conceito", "Análise detalhada: Dados", or "Conclusão: Resumo"). Subheadings must be direct, engaging, and without any descriptive labels or colons explaining the section.
 - Image tag (insert after the 1st H2): <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
 - Internal link: Link to "${url}" using "${mainKeyword}" as anchor text.
 - External link: Link to a global authority source in the middle of the text.
