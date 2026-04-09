@@ -81,30 +81,34 @@ PERFORMANCE TARGETS (MANDATORY)
 - Use exactly ${h2Count} subheadings (<h2>) to divide the content.
 - Write at least ${pCount} long paragraphs (minimum 100 words per paragraph).
 
-TECHNICAL RULES
-- Tone: ${settings.tone} | Level: ${settings.languageLevel}
-- Format: PURE HTML (<h1>, <h2>, <h4>, <p>, <a>, <img>, <b>, <strong>).
-- IMPORTANT SEO 1: The very first paragraph exactly below the <h1> must be a concise Meta Description wrapped in an <h4> HTML tag.
-- IMPORTANT SEO 2: Bold the main keyword ("${mainKeyword}") and other important context terms naturally throughout the text using <strong> or <b> tags.
-- SUBHEADING STYLE: DO NOT use explanatory prefixes with a colon in your subheadings (e.g., NEVER write "Visão geral: Conceito", "Análise detalhada: Dados", or "Conclusão: Resumo"). Subheadings must be direct, engaging, and without any descriptive labels or colons explaining the section.
-- Image tag (insert after the 1st H2): <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
-- Internal link: Link to "${url}" using "${mainKeyword}" as anchor text.
-- External link: Link to a global authority source in the middle of the text.
+TECHNICAL RULES (STRICTLY ENFORCED)
+- Tone: ${settings.tone} (persuasive approach) | Level: ${settings.languageLevel}
+- Format: PURE HTML (<h1>, <h2>, <h4>, <p>, <a>, <img>, <b>, <strong>, <ul>, <ol>, <li>).
+- IMPORTANT SEO 1: Include a highly persuasive and SEO-optimized Meta Description precisely wrapped within <h4> tags. This MUST be the very first element directly below the <h1> tag.
+- IMPORTANT SEO 2: Bold key terms related to "${mainKeyword}". CRITICAL REGRA: DONT use more than 6 bolds (<B> or <STRONG>) across the ENTIRE article.
+- SUBHEADING STYLE: PROHIBITED to use explanatory prefixes with a colon in your subheadings (e.g., NEVER write "Visão geral: Conceito", "Análise detalhada: Dados", or "Conclusão: Resumo"). Subheadings must be direct, journalistic, and captivating without any descriptive labels or colons.
+- LISTS: Use MAXIMUM ONE (1) list (either <ul> or <ol>) in the entire article. Prioritize well-developed paragraphs.
+- Image Backlink: The image MUST be a link pointing exactly to "${url}". Insert this HTML after the first <h2>: <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
+- Contextual Backlink: Naturally transform one of the inserted keywords into a hyperlink (<a>) pointing exactly to "${url}".
+- Credibility Link: Include 1 external link to an authority source (e.g., Wikipedia, government, or NGO site) naturally in the text to validate information.
+- Evidence & Quotes: You MUST include real/verifiable statistics/data AND quotes/statements from industry references (include their name and source).
+- Expert Opinion: Include a dedicated paragraph expressing an expert opinion on the subject, based on reviews from authoritative people or entities. The tone must be explanatory and friendly.
 - Secondary keywords to include naturally: ${otherKeywords}.
 
 STRUCTURE
 1. INTRO: Deep impact of "${mainKeyword}".
-2. OVERVIEW: What it is, foundations, and why it matters now.
+2. OVERVIEW: Direct and engaging explanation of the roots and relevance now.
 3. IN-DEPTH ANALYSIS: Data, statistics, and trends.
-4. PRACTICAL GUIDE: Step-by-step implementation.
-5. CHALLENGES AND MYTHS: Common misconceptions.
-6. USE CASES: Detailed examples and success stories.
-7. THE FUTURE: Where this topic is heading.
-${settings.includeFAQ ? "8. FAQ: 5 questions with complete answers." : ""}
+4. EXPERT OPINION: The mandatory expert opinion paragraph.
+5. PRACTICAL GUIDE: Implementation insights.
+6. CHALLENGES AND MYTHS: Common misconceptions.
+7. USE CASES: Detailed examples and success stories with quotes.
+8. THE FUTURE: Where this topic is heading.
+${settings.includeFAQ ? "9. FAQ: 5 questions with complete answers." : ""}
 
 This is article number ${index} of ${quantity}. It MUST approach a different angle.
 
-Return ONLY the pure HTML starting with <h1>.`;
+Return ONLY the pure HTML starting with <h1>. No extra text or markdown formatting.`;
 }
 
 // GEMINI

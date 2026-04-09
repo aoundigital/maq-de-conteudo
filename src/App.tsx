@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     anthropicKey: '',
     groqKey: '',
     mistralKey: '',
+    imgbbKey: '',
   },
 };
 
