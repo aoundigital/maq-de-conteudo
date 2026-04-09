@@ -37,21 +37,31 @@ async function generateAndUploadImage(mainKeyword: string, imageStyle: string, i
     const response = await fetch(pollUrl);
     if (!response.ok) throw new Error("Falha no download da imagem IA");
     const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64data = (reader.result as string).split(',')[1];
+          const formData = new FormData();
+          formData.append("image", base64data);
 
-    const formData = new FormData();
-    formData.append("image", blob, "image.jpg");
-
-    const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`, {
-      method: "POST",
-      body: formData,
+          const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`, {
+            method: "POST",
+            body: formData,
+          });
+          
+          if (!imgbbRes.ok) throw new Error("Falha no upload para o ImgBB");
+          const imgbbData = await imgbbRes.json();
+          resolve(imgbbData.data.url);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-    
-    if (!imgbbRes.ok) throw new Error("Falha no upload para o ImgBB");
-    const imgbbData = await imgbbRes.json();
-    return imgbbData.data.url;
   } catch (error) {
     console.error("Erro no processamento da imagem:", error);
-    // Se falhar, usa Pollinations como backup seguro
     return pollUrl;
   }
 }
@@ -90,11 +100,10 @@ You MUST strictly obey the following rules without any exception. Failure to com
 9. SUBHEADING PREFIX BAN: NEVER use explanatory prefixes with a colon (e.g., "Visão geral: Conceito", "Análise detalhada: Dados").
 10. SUBHEADING CREATIVITY: Be highly creative. Incorporate the exact keywords or synonyms naturally into subheadings.
 11. LISTS: Use MAXIMUM ONE (1) list (either <ul> or <ol>) in the entire article. Prioritize well-developed paragraphs.
-12. IMAGE BACKLINK: The image MUST be a link pointing exactly to "${url}". Insert this exact HTML randomly after one of the early <h2> or <h3> tags: <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
-13. CONTEXTUAL BACKLINK: Naturally transform one of the inserted keywords into a hyperlink (<a>) pointing exactly to "${url}".
-14. CREDIBILITY LINK: Include exactly 1 external link (<a>) to an authority source (e.g., Wikipedia, government site) naturally in the text.
-15. EVIDENCE/QUOTES: You MUST include real or highly realistic verifiable statistics/data AND quotes/statements from industry references (include their name and source).
-16. EXPERT OPINION: Include a dedicated paragraph expressing an expert opinion on the subject.
+12. CONTEXTUAL BACKLINK: Naturally transform one of the inserted keywords into a hyperlink (<a>) pointing exactly to "${url}".
+13. CREDIBILITY LINK: Include exactly 1 external link (<a>) to an authority source (e.g., Wikipedia, government site) naturally in the text.
+14. EVIDENCE/QUOTES: You MUST include real or highly realistic verifiable statistics/data AND quotes/statements from industry references (include their name and source).
+15. EXPERT OPINION: Include a dedicated paragraph expressing an expert opinion on the subject.
 </CRITICAL_MANDATES>
 
 <TASK>
@@ -303,7 +312,27 @@ export async function generateArticles(
       .trim();
 
     // CVE-7: Sanitize before storing - prevents stored XSS
-    const htmlContent = sanitizeHtml(rawHtml);
+    let htmlContent = sanitizeHtml(rawHtml);
+
+    // Injeção programática da IA de imagem para evitar que LLMs ignorem a regra.
+    // Procura o primeiro <h2> ou <h3> para inserir a imagem logo em seguida.
+    const imageHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>`;
+    const h2Match = htmlContent.match(/<\/h2>/i);
+    const h3Match = htmlContent.match(/<\/h3>/i);
+    
+    if (h2Match && h2Match.index) {
+      htmlContent = htmlContent.slice(0, h2Match.index + 5) + imageHtml + htmlContent.slice(h2Match.index + 5);
+    } else if (h3Match && h3Match.index) {
+      htmlContent = htmlContent.slice(0, h3Match.index + 5) + imageHtml + htmlContent.slice(h3Match.index + 5);
+    } else {
+      // Se não achou h2 nem h3, põe logo depois do primeiro parágrafo
+      const pMatch = htmlContent.match(/<\/p>/i);
+      if (pMatch && pMatch.index) {
+        htmlContent = htmlContent.slice(0, pMatch.index + 4) + imageHtml + htmlContent.slice(pMatch.index + 4);
+      } else {
+        htmlContent += imageHtml;
+      }
+    }
 
     const titleMatch = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i);
     const title = titleMatch
