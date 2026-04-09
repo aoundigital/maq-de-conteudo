@@ -67,37 +67,44 @@ function sanitizeHtml(html: string): string {
   });
 }
 
-// PROMPT BUILDER
 function buildPrompt(params: ArticleParams, index: number, imageUrl: string): string {
   const { quantity, mainKeyword, otherKeywords, url, settings } = params;
   const minWords = settings.minWords ?? 800;
   const pCount = Math.max(18, Math.ceil(minWords / 65));
   const h2Count = Math.max(7, Math.ceil(minWords / 150));
 
-  return `You are a Chief Editor of a major news portal and SEO authority.
-Your mission is to produce an epic MEGAPOST about "${mainKeyword}" in Brazilian Portuguese (pt-BR).
+  return `<SYSTEM_ROLE>
+You are an uncompromising Chief Editor of a major news portal and absolute SEO authority. Your ONLY output must be pristine, pure HTML.
+</SYSTEM_ROLE>
 
-PERFORMANCE TARGETS (MANDATORY)
-- Write AT LEAST ${minWords} WORDS.
-- Use exactly ${h2Count} subheadings (<h2>) to divide the content.
-- Write at least ${pCount} long paragraphs (minimum 100 words per paragraph).
+<CRITICAL_MANDATES>
+You MUST strictly obey the following rules without any exception. Failure to comply is a critical error.
+1. LENGTH: Write AT LEAST ${minWords} WORDS.
+2. FORMAT: PURE HTML ONLY (<h1>, <h2>, <h4>, <p>, <a>, <img>, <b>, <strong>, <ul>, <ol>, <li>). DO NOT wrap with \`\`\`html.
+3. SUBHEADINGS COUNT: Use EXACTLY ${h2Count} subheadings (<h2>) to divide the content.
+4. PARAGRAPHS COUNT: Write at least ${pCount} paragraphs.
+5. PARAGRAPH VARIATION (CRITICAL): To enhance the natural flow, SIGNIFICANTLY vary the word count and length of EACH paragraph. Avoid uniform paragraph blocks at all costs. Mix short, punchy paragraphs with longer explanatory ones.
+6. META DESCRIPTION: Include a highly persuasive and SEO-optimized Meta Description precisely wrapped within <h4> tags. This MUST be the very first element directly below the <h1> tag.
+7. BOLDING: Bold key terms related to "${mainKeyword}". CRITICAL: DO NOT use more than 6 bolds (<B> or <STRONG>) across the ENTIRE article.
+8. SUBHEADING WORDS BAN (NEVER USE): YOU MUST NEVER use the exact words "Conclusão", "Intro", "Introdução", "Análise Profunda", or "Guia Prático" in ANY <h2> or <h3>, especially alone.
+9. SUBHEADING PREFIX BAN: NEVER use explanatory prefixes with a colon (e.g., "Visão geral: Conceito", "Análise detalhada: Dados").
+10. SUBHEADING CREATIVITY: Be highly creative. Incorporate the exact keywords or synonyms naturally into subheadings.
+11. LISTS: Use MAXIMUM ONE (1) list (either <ul> or <ol>) in the entire article. Prioritize well-developed paragraphs.
+12. IMAGE BACKLINK: The image MUST be a link pointing exactly to "${url}". Insert this exact HTML randomly after one of the early <h2> or <h3> tags: <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
+13. CONTEXTUAL BACKLINK: Naturally transform one of the inserted keywords into a hyperlink (<a>) pointing exactly to "${url}".
+14. CREDIBILITY LINK: Include exactly 1 external link (<a>) to an authority source (e.g., Wikipedia, government site) naturally in the text.
+15. EVIDENCE/QUOTES: You MUST include real or highly realistic verifiable statistics/data AND quotes/statements from industry references (include their name and source).
+16. EXPERT OPINION: Include a dedicated paragraph expressing an expert opinion on the subject.
+</CRITICAL_MANDATES>
 
-TECHNICAL RULES (STRICTLY ENFORCED)
-- Tone: ${settings.tone} (persuasive approach) | Level: ${settings.languageLevel}
-- Format: PURE HTML (<h1>, <h2>, <h4>, <p>, <a>, <img>, <b>, <strong>, <ul>, <ol>, <li>).
-- IMPORTANT SEO 1: Include a highly persuasive and SEO-optimized Meta Description precisely wrapped within <h4> tags. This MUST be the very first element directly below the <h1> tag.
-- IMPORTANT SEO 2: Bold key terms related to "${mainKeyword}". CRITICAL REGRA: DONT use more than 6 bolds (<B> or <STRONG>) across the ENTIRE article.
-- SUBHEADING STYLE: Be highly creative in writing your subheadings (<h2> and <h3>). If possible, organically incorporate the exact provided keywords or words with the precise same meaning. CRITICAL BAN: YOU MUST NEVER use any of these exact words in ANY subheading, especially alone: "Conclusão", "Intro", "Introdução", "Análise Profunda", or "Guia Prático". Avoid explanatory prefixes with a colon in your subheadings (e.g., NEVER write "Visão geral: Conceito", "Análise detalhada: Dados").
-- PARAGRAPH STRUCTURE: To enhance the natural, human-like flow of the text, significantly vary the word count and length of EACH paragraph. Avoid uniform paragraph blocks.
-- LISTS: Use MAXIMUM ONE (1) list (either <ul> or <ol>) in the entire article. Prioritize well-developed paragraphs.
-- Image Backlink: The image MUST be a link pointing exactly to "${url}". Insert this HTML randomly after one of the early <h2> or <h3> tags: <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
-- Contextual Backlink: Naturally transform one of the inserted keywords into a hyperlink (<a>) pointing exactly to "${url}".
-- Credibility Link: Include 1 external link to an authority source (e.g., Wikipedia, government, or NGO site) naturally in the text to validate information.
-- Evidence & Quotes: You MUST include real/verifiable statistics/data AND quotes/statements from industry references (include their name and source).
-- Expert Opinion: Include a dedicated paragraph expressing an expert opinion on the subject, based on reviews from authoritative people or entities. The tone must be explanatory and friendly.
-- Secondary keywords to include naturally: ${otherKeywords}.
+<TASK>
+Topic: "${mainKeyword}"
+Language: Brazilian Portuguese (pt-BR)
+Tone: ${settings.tone}
+Level: ${settings.languageLevel}
+Secondary Keywords: ${otherKeywords}
 
-STRUCTURE
+STRUCTURE:
 1. INTRO: Deep impact of "${mainKeyword}".
 2. OVERVIEW: Direct and engaging explanation of the roots and relevance now.
 3. IN-DEPTH ANALYSIS: Data, statistics, and trends.
@@ -108,9 +115,16 @@ STRUCTURE
 8. THE FUTURE: Where this topic is heading.
 ${settings.includeFAQ ? "9. FAQ: 5 questions with complete answers." : ""}
 
-This is article number ${index} of ${quantity}. It MUST approach a different angle.
+You are generating article number ${index} out of ${quantity}. Ensure a unique, distinct angle from standard templates.
+</TASK>
 
-Return ONLY the pure HTML starting with <h1>. No extra text or markdown formatting.`;
+<FINAL_WARNING>
+Read everything you generated. Validate the following before outputting:
+- Is there any subheading with the word "Conclusão"? If so, YOU FAILED. Change it immediately.
+- Are paragraph lengths varied? If not, rewrite to vary them.
+- Is the output ONLY pure HTML (starting with <h1>)?
+Proceed to output the HTML.
+</FINAL_WARNING>`;
 }
 
 // GEMINI
