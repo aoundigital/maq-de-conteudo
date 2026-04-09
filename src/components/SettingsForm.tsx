@@ -225,7 +225,7 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
           </div>
 
           <p className="text-xs text-on-surface-variant leading-relaxed">
-            As imagens são buscadas automaticamente no <strong>LoremFlickr</strong> com base na palavra-chave principal do artigo.
+            As imagens são buscadas automaticamente usando a API Pollinations, hospedadas permanentemente no ImgBB (se configurado), e inseridas por meio de uma inteligência artificial otimizada com base na palavra-chave principal do artigo.
             Use o campo abaixo para refinar o estilo visual e obter imagens mais relevantes.
           </p>
 

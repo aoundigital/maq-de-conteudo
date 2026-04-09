@@ -86,9 +86,10 @@ TECHNICAL RULES (STRICTLY ENFORCED)
 - Format: PURE HTML (<h1>, <h2>, <h4>, <p>, <a>, <img>, <b>, <strong>, <ul>, <ol>, <li>).
 - IMPORTANT SEO 1: Include a highly persuasive and SEO-optimized Meta Description precisely wrapped within <h4> tags. This MUST be the very first element directly below the <h1> tag.
 - IMPORTANT SEO 2: Bold key terms related to "${mainKeyword}". CRITICAL REGRA: DONT use more than 6 bolds (<B> or <STRONG>) across the ENTIRE article.
-- SUBHEADING STYLE: PROHIBITED to use explanatory prefixes with a colon in your subheadings (e.g., NEVER write "Visão geral: Conceito", "Análise detalhada: Dados", or "Conclusão: Resumo"). Subheadings must be direct, journalistic, and captivating without any descriptive labels or colons.
+- SUBHEADING STYLE: Be highly creative in writing your subheadings (<h2> and <h3>). If possible, organically incorporate the exact provided keywords or words with the precise same meaning. CRITICAL BAN: YOU MUST NEVER use any of these exact words in ANY subheading, especially alone: "Conclusão", "Intro", "Introdução", "Análise Profunda", or "Guia Prático". Avoid explanatory prefixes with a colon in your subheadings (e.g., NEVER write "Visão geral: Conceito", "Análise detalhada: Dados").
+- PARAGRAPH STRUCTURE: To enhance the natural, human-like flow of the text, significantly vary the word count and length of EACH paragraph. Avoid uniform paragraph blocks.
 - LISTS: Use MAXIMUM ONE (1) list (either <ul> or <ol>) in the entire article. Prioritize well-developed paragraphs.
-- Image Backlink: The image MUST be a link pointing exactly to "${url}". Insert this HTML after the first <h2>: <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
+- Image Backlink: The image MUST be a link pointing exactly to "${url}". Insert this HTML randomly after one of the early <h2> or <h3> tags: <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
 - Contextual Backlink: Naturally transform one of the inserted keywords into a hyperlink (<a>) pointing exactly to "${url}".
 - Credibility Link: Include 1 external link to an authority source (e.g., Wikipedia, government, or NGO site) naturally in the text to validate information.
 - Evidence & Quotes: You MUST include real/verifiable statistics/data AND quotes/statements from industry references (include their name and source).
