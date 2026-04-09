@@ -25,7 +25,8 @@ async function generateAndUploadImage(mainKeyword: string, imageStyle: string, i
     ? encodeURIComponent(`${mainKeyword},${imageStyle.replace(/\s+/g, ",")}`)
     : encodeURIComponent(mainKeyword);
     
-  const pollUrl = `https://image.pollinations.ai/prompt/${query}?width=1200&height=628&nologo=true`;
+  const seed = Math.floor(Math.random() * 1000000);
+  const pollUrl = `https://image.pollinations.ai/prompt/${query}?width=1200&height=628&nologo=true&seed=${seed}`;
 
   if (!imgbbKey || imgbbKey.trim() === "") {
     // Destino gratuito via API Pollinations direto (fallback se não tiver ImgBB)
