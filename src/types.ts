@@ -6,6 +6,7 @@ export interface AIKeys {
   anthropicKey: string;
   groqKey: string;
   mistralKey: string;
+  imgbbKey: string;
 }
 
 export interface AppSettings {

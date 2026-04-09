@@ -262,7 +262,7 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
             <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
               <ImageIcon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-700 leading-relaxed">
-                Imagens serão buscadas no Unsplash com o tema: <strong>"{formData.mainKeyword || 'palavra-chave'}"</strong> + estilo: <em>"{settings.imageStyle}"</em>
+                Imagens serão buscadas no LoremFlickr com o tema: <strong>"{formData.mainKeyword || 'palavra-chave'}"</strong> + estilo: <em>"{settings.imageStyle}"</em>
               </p>
             </div>
           )}

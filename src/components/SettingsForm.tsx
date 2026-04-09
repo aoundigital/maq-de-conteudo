@@ -225,7 +225,7 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
           </div>
 
           <p className="text-xs text-on-surface-variant leading-relaxed">
-            As imagens são buscadas automaticamente no <strong>Unsplash</strong> com base na palavra-chave principal do artigo.
+            As imagens são buscadas automaticamente no <strong>LoremFlickr</strong> com base na palavra-chave principal do artigo.
             Use o campo abaixo para refinar o estilo visual e obter imagens mais relevantes.
           </p>
 
@@ -333,6 +333,21 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
               value={local.aiKeys.mistralKey} onChange={v => updateKey('mistralKey', v)}
               placeholder="..." color="text-rose-700"
               linkUrl="https://console.mistral.ai/api-keys/" linkLabel="Mistral Console"
+            />
+          </div>
+
+          {/* ImgBB */}
+          <div className="p-4 rounded-xl border border-teal-100 bg-teal-50/30 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">🖼️</span>
+              <span className="text-sm font-semibold text-teal-800">Hospedagem ImgBB (Imagens IA)</span>
+            </div>
+            <p className="text-[11px] text-teal-700 -mt-1">Usado para hospedar as imagens geradas pela IA e incluí-las nos artigos permanentemente.</p>
+            <KeyField
+              id="imgbbKey" label="Chave de API do ImgBB"
+              value={local.aiKeys.imgbbKey ?? ''} onChange={v => updateKey('imgbbKey', v)}
+              placeholder="Sua chave API ImgBB..." color="text-teal-700"
+              linkUrl="https://api.imgbb.com/" linkLabel="Criar chave gratuita do ImgBB"
             />
           </div>
         </div>

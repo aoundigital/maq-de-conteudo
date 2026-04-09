@@ -20,18 +20,45 @@ export interface GeneratedArticle {
   clientName: string;
 }
 
-// IMAGE URL
-function buildImageUrl(mainKeyword: string, imageStyle: string): string {
+async function generateAndUploadImage(mainKeyword: string, imageStyle: string, imgbbKey?: string): Promise<string> {
   const query = imageStyle?.trim()
     ? encodeURIComponent(`${mainKeyword},${imageStyle.replace(/\s+/g, ",")}`)
     : encodeURIComponent(mainKeyword);
-  return `https://loremflickr.com/1200/628/${query}?lock=${Math.floor(Math.random() * 1000)}`;
+    
+  const pollUrl = `https://image.pollinations.ai/prompt/${query}?width=1200&height=628&nologo=true`;
+
+  if (!imgbbKey || imgbbKey.trim() === "") {
+    // Destino gratuito via API Pollinations direto (fallback se não tiver ImgBB)
+    return pollUrl;
+  }
+
+  try {
+    const response = await fetch(pollUrl);
+    if (!response.ok) throw new Error("Falha no download da imagem IA");
+    const blob = await response.blob();
+
+    const formData = new FormData();
+    formData.append("image", blob, "image.jpg");
+
+    const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`, {
+      method: "POST",
+      body: formData,
+    });
+    
+    if (!imgbbRes.ok) throw new Error("Falha no upload para o ImgBB");
+    const imgbbData = await imgbbRes.json();
+    return imgbbData.data.url;
+  } catch (error) {
+    console.error("Erro no processamento da imagem:", error);
+    // Se falhar, usa Pollinations como backup seguro
+    return pollUrl;
+  }
 }
 
 // CVE-7: Sanitize AI-generated HTML to prevent stored XSS
 function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ["h1", "h2", "h3", "p", "a", "img", "b", "ul", "ol", "li", "strong", "em", "br"],
+    ALLOWED_TAGS: ["h1", "h2", "h3", "h4", "p", "a", "img", "b", "ul", "ol", "li", "strong", "em", "br"],
     ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel", "style"],
     ALLOW_DATA_ATTR: false,
     FORCE_BODY: false,
@@ -40,9 +67,8 @@ function sanitizeHtml(html: string): string {
 }
 
 // PROMPT BUILDER
-function buildPrompt(params: ArticleParams, index: number): string {
+function buildPrompt(params: ArticleParams, index: number, imageUrl: string): string {
   const { quantity, mainKeyword, otherKeywords, url, settings } = params;
-  const imageUrl = buildImageUrl(mainKeyword, settings.imageStyle ?? "");
   const minWords = settings.minWords ?? 800;
   const pCount = Math.max(18, Math.ceil(minWords / 65));
   const h2Count = Math.max(7, Math.ceil(minWords / 150));
@@ -57,7 +83,9 @@ PERFORMANCE TARGETS (MANDATORY)
 
 TECHNICAL RULES
 - Tone: ${settings.tone} | Level: ${settings.languageLevel}
-- Format: PURE HTML (<h1>, <h2>, <p>, <a>, <img>, <b>).
+- Format: PURE HTML (<h1>, <h2>, <h4>, <p>, <a>, <img>, <b>, <strong>).
+- IMPORTANT SEO 1: The very first paragraph exactly below the <h1> must be a concise Meta Description wrapped in an <h4> HTML tag.
+- IMPORTANT SEO 2: Bold the main keyword ("${mainKeyword}") and other important context terms naturally throughout the text using <strong> or <b> tags.
 - SUBHEADING STYLE: DO NOT use explanatory prefixes with a colon in your subheadings (e.g., NEVER write "Visão geral: Conceito", "Análise detalhada: Dados", or "Conclusão: Resumo"). Subheadings must be direct, engaging, and without any descriptive labels or colons explaining the section.
 - Image tag (insert after the 1st H2): <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="${mainKeyword}" style="width:100%; border-radius:12px; margin:30px 0;"></a>
 - Internal link: Link to "${url}" using "${mainKeyword}" as anchor text.
@@ -225,7 +253,8 @@ export async function generateArticles(
   const articles: GeneratedArticle[] = [];
 
   for (let i = 1; i <= quantity; i++) {
-    const prompt = buildPrompt(params, i);
+    const imageUrl = await generateAndUploadImage(params.mainKeyword, settings.imageStyle ?? "", aiKeys.imgbbKey);
+    const prompt = buildPrompt(params, i, imageUrl);
     let rawHtml = "";
 
     switch (provider) {
