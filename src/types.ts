@@ -40,6 +40,7 @@ export interface HistoryItem {
   mainKeyword: string;
   zipName: string;
   modelUsed?: string;
+  imageModelUsed?: string;
   articles: {
     title: string;
     content: string;

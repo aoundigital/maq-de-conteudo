@@ -158,7 +158,7 @@ You MUST strictly obey the following rules without any exception. Failure to com
 9. SUBHEADING PREFIX BAN: NEVER use explanatory prefixes with a colon (e.g., "Visão geral: Conceito", "Análise detalhada: Dados").
 10. SUBHEADING CREATIVITY: Be highly creative. Incorporate the exact keywords or synonyms naturally into subheadings.
 11. LISTS: Use MAXIMUM ONE (1) list (either <ul> or <ol>) in the entire article. Prioritize well-developed paragraphs.
-12. CONTEXTUAL BACKLINK: Naturally transform one of the inserted keywords into a hyperlink (<a>) pointing exactly to "${url}".
+12. CONTEXTUAL BACKLINK (MANDATORY — EXACT ANCHOR TEXT): You MUST insert exactly ONE backlink pointing to "${url}". The anchor text of this link MUST be the EXACT main keyword: "${mainKeyword}". The link MUST follow this exact format: <a href="${url}">${mainKeyword}</a>. NO variations, synonyms, or paraphrases are allowed as anchor text. Example: if the main keyword is "evento social" and the URL is "http://eventosp.com.br/", the link must be: <a href="http://eventosp.com.br/">evento social</a>. This link must appear naturally within a paragraph's body text.
 13. CREDIBILITY LINK: Include exactly 1 external link (<a>) to an authority source (e.g., Wikipedia, government site) naturally in the text.
 14. EVIDENCE/QUOTES: You MUST include real or highly realistic verifiable statistics/data AND quotes/statements from industry references (include their name and source).
 15. EXPERT OPINION: Include a dedicated paragraph expressing an expert opinion on the subject.
@@ -190,6 +190,7 @@ Read everything you generated. Validate the following before outputting:
 - Is there any subheading with the word "Conclusão"? If so, YOU FAILED. Change it immediately.
 - Are paragraph lengths varied? If not, rewrite to vary them.
 - Is the output ONLY pure HTML (starting with <h1>)?
+- Does the backlink use EXACTLY "${mainKeyword}" as anchor text pointing to "${url}"? Example: <a href="${url}">${mainKeyword}</a>. If not, fix it before outputting.
 Proceed to output the HTML.
 </FINAL_WARNING>`;
 }

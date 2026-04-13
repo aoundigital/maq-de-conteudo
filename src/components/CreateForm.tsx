@@ -75,6 +75,7 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
         mainKeyword: formData.mainKeyword,
         zipName,
         modelUsed: localModel,
+        imageModelUsed: localImageModel,
         articles: articles.map(a => ({ title: a.title, content: a.content, filename: a.filename })),
       };
 

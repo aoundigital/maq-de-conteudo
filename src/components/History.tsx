@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Filter, Download, Trash2, FileArchive, Cpu } from 'lucide-react';
-import { HistoryItem, AI_MODELS } from '../types';
+import { HistoryItem, AI_MODELS, AI_IMAGE_MODELS } from '../types';
 import { formatDate } from '../lib/utils';
 import JSZip from 'jszip';
 
@@ -82,7 +82,8 @@ export default function History({ items, onDelete }: HistoryProps) {
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Cliente / Pauta</th>
                 <th className="px-6 py-4">Data</th>
-                <th className="px-6 py-4">Modelo</th>
+                <th className="px-6 py-4">Modelo Texto</th>
+                <th className="px-6 py-4">Modelo IMG</th>
                 <th className="px-6 py-4">Volume</th>
                 <th className="px-6 py-4 text-right">Ações</th>
               </tr>
@@ -111,6 +112,13 @@ export default function History({ items, onDelete }: HistoryProps) {
                       </span>
                     </div>
                   </td>
+                  <td className="px-6 py-5">
+                    <span className="text-xs font-medium text-on-surface-variant bg-surface-container px-2 py-1 rounded-md border border-outline-variant/10">
+                      {item.imageModelUsed
+                        ? (AI_IMAGE_MODELS.find(m => m.id === item.imageModelUsed)?.name || item.imageModelUsed)
+                        : 'Pollinations (fallback)'}
+                    </span>
+                  </td>
                   <td className="px-6 py-5 text-sm text-on-surface-variant">{item.quantity} Artigos</td>
                   <td className="px-6 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -134,7 +142,7 @@ export default function History({ items, onDelete }: HistoryProps) {
               ))}
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-outline">
+                  <td colSpan={7} className="px-6 py-12 text-center text-outline">
                     Nenhum registro encontrado.
                   </td>
                 </tr>
@@ -157,6 +165,11 @@ export default function History({ items, onDelete }: HistoryProps) {
                 <span className="text-[10px] font-bold text-primary/70 bg-primary/5 px-2 py-0.5 rounded border border-primary/10 flex items-center gap-1">
                   <Cpu className="w-3 h-3" />
                   {AI_MODELS.find(m => m.id === item.modelUsed)?.name || item.modelUsed || 'N/A'}
+                </span>
+                <span className="text-[10px] font-bold text-amber-700/80 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 flex items-center gap-1">
+                  🖼 {item.imageModelUsed
+                    ? (AI_IMAGE_MODELS.find(m => m.id === item.imageModelUsed)?.name || item.imageModelUsed)
+                    : 'Pollinations (fallback)'}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-4 border-t border-surface-container">
