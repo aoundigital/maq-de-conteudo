@@ -201,9 +201,9 @@ async function generateWithOpenRouter(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${apiKey.trim()}`,
       'HTTP-Referer': 'https://maquina-de-conteudo.vercel.app',
-      'X-Title': 'Máquina de Conteúdo',
+      'X-Title': 'Maquina de Conteudo',
     },
     body: JSON.stringify({
       model,
@@ -214,8 +214,20 @@ async function generateWithOpenRouter(
   });
 
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(`OpenRouter error ${response.status}: ${(err as { error?: { message?: string } }).error?.message ?? response.statusText}`);
+    const errBody = await response.json().catch(() => ({})) as { error?: { message?: string } };
+    const apiMsg = errBody.error?.message ?? response.statusText;
+    if (response.status === 401) {
+      throw new Error(
+        `Chave OpenRouter inválida (401 — ${apiMsg}). ` +
+        'Verifique se copiou a chave corretamente em openrouter.ai/keys e salve novamente nas Configurações.'
+      );
+    }
+    if (response.status === 402) {
+      throw new Error(
+        'Saldo insuficiente na conta OpenRouter (402). Adicione créditos em openrouter.ai/credits ou use um modelo gratuito.'
+      );
+    }
+    throw new Error(`OpenRouter erro ${response.status}: ${apiMsg}`);
   }
 
   const data = await response.json() as { choices: { message: { content: string } }[] };
@@ -325,16 +337,26 @@ export async function generateArticles(
   const realModelId = getRealModelId(selectedModel);
   const temp = temperature ?? 0.7;
 
+  // Trim all keys at source to avoid silent 401s from whitespace
   const keyMap: Record<string, string> = {
-    openrouter: aiKeys.openrouterKey,
-    openai:     aiKeys.openaiKey,
-    groq:       aiKeys.groqKey,
-    mistral:    aiKeys.mistralKey,
+    openrouter: (aiKeys.openrouterKey ?? '').trim(),
+    openai:     (aiKeys.openaiKey ?? '').trim(),
+    groq:       (aiKeys.groqKey ?? '').trim(),
+    mistral:    (aiKeys.mistralKey ?? '').trim(),
   };
 
   const apiKey = keyMap[provider];
-  if (!apiKey?.trim()) {
-    throw new Error(`Chave de API não configurada para o provedor "${provider}". Acesse Configurações → Inteligências Artificiais.`);
+  if (!apiKey) {
+    const providerLabel: Record<string, string> = {
+      openrouter: 'OpenRouter (openrouter.ai/keys)',
+      openai:     'OpenAI (platform.openai.com/api-keys)',
+      groq:       'Groq (console.groq.com/keys)',
+      mistral:    'Mistral (console.mistral.ai/api-keys)',
+    };
+    throw new Error(
+      `Chave de API não configurada para ${providerLabel[provider] ?? provider}. ` +
+      'Acesse Configurações → Inteligências Artificiais e salve sua chave.'
+    );
   }
 
   const articles: GeneratedArticle[] = [];
