@@ -1,9 +1,9 @@
-export type AIProvider = 'gemini' | 'openai' | 'anthropic' | 'groq' | 'mistral';
+// Providers diretos (própria chave de API)
+export type AIProvider = 'openrouter' | 'openai' | 'groq' | 'mistral';
 
 export interface AIKeys {
-  geminiKey: string;
+  openrouterKey: string;
   openaiKey: string;
-  anthropicKey: string;
   groqKey: string;
   mistralKey: string;
   imgbbKey: string;
@@ -16,7 +16,9 @@ export interface AppSettings {
   languageLevel: string;
   includeFAQ: boolean;
   selectedModel: string;
+  selectedImageModel: string;
   imageStyle: string;
+  temperature: number;
   aiKeys: AIKeys;
 }
 
@@ -50,153 +52,232 @@ export interface AIModel {
   name: string;
   provider: AIProvider;
   description: string;
+  tier: 'free' | 'paid';
 }
 
+export interface AIImageModel {
+  id: string;
+  name: string;
+  description: string;
+  tier: 'free' | 'paid';
+}
+
+// ── Modelos de Texto ─────────────────────────────────────────
+
 export const AI_MODELS: AIModel[] = [
-  // ── Google Gemini ──────────────────────────────────────
+
+  // ── Gratuitos via OpenRouter (3 melhores) ────────────────
   {
-    id: 'gemini-3.1-pro',
-    name: 'Gemini 3.1 Pro',
-    provider: 'gemini',
-    description: '⭐ Última Geração (3.1 Promax) — Maior capacidade de raciocínio, escrita imersiva e super contexto',
+    id: 'meta-llama/llama-3.3-70b-instruct:free',
+    name: 'Llama 3.3 70B (Grátis)',
+    provider: 'openrouter',
+    tier: 'free',
+    description: '⭐ Melhor open-source gratuito da Meta — Excelente para PT-BR e textos longos',
   },
   {
-    id: 'gemini-3.1-flash',
-    name: 'Gemini 3.1 Flash',
-    provider: 'gemini',
-    description: 'A versão Flash mais recém atualizada. Extremamente veloz, menor custo.',
+    id: 'mistralai/mistral-7b-instruct:free',
+    name: 'Mistral 7B (Grátis)',
+    provider: 'openrouter',
+    tier: 'free',
+    description: 'Ultra-rápido e eficiente — Ótimo para alto volume sem custo',
   },
   {
-    id: 'gemini-3.0-pro',
-    name: 'Gemini 3.0 Pro',
-    provider: 'gemini',
-    description: 'Geração avançada com altíssima qualidade de redação complexa.',
-  },
-  {
-    id: 'gemini-3.0-flash',
-    name: 'Gemini 3.0 Flash',
-    provider: 'gemini',
-    description: 'Rápido, confiável e focado na linha 3.0.',
-  },
-  {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    provider: 'gemini',
-    description: 'Geração anterior — Equilíbrio sólido entre velocidade e razão',
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'gemini',
-    description: 'Clássico de contexto gigante (2M tokens) — Excelente para MEGATEXTOS',
+    id: 'google/gemma-3-27b-it:free',
+    name: 'Gemma 3 27B (Grátis)',
+    provider: 'openrouter',
+    tier: 'free',
+    description: 'Google open-source de última geração — Bom equilíbrio qualidade/velocidade',
   },
 
-  // ── OpenAI ─────────────────────────────────────────────
+  // ── Pagos via OpenRouter (8 melhores globais) ─────────────
   {
-    id: 'o3-mini',
-    name: 'OpenAI o3-mini',
-    provider: 'openai',
-    description: '🤖 Maior raciocínio lógico e velocidade — Excelente em Megaposts',
-  },
-  {
-    id: 'o1',
-    name: 'OpenAI o1',
-    provider: 'openai',
-    description: '🤖 Raciocínio profundo e super complexidade — O mais avançado da OpenAI',
-  },
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    provider: 'openai',
-    description: '⭐ Rápido e de enorme qualidade. O clássico atualizado.',
-  },
-  {
-    id: 'gpt-4.5-preview',
-    name: 'GPT-4.5 Preview',
-    provider: 'openai',
-    description: 'Pioneirismo — Máxima imersão narrativa e fluidez escrita',
-  },
-  {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    provider: 'openai',
-    description: 'Econômico e rápido — Suporta textos grandes num custo baixo',
-  },
-
-  // ── Anthropic Claude ───────────────────────────────────
-  {
-    id: 'claude-3-7-sonnet-20250219',
+    id: 'anthropic/claude-3.7-sonnet',
     name: 'Claude 3.7 Sonnet',
-    provider: 'anthropic',
-    description: '⭐ Topo de linha atual — A melhor escrita editorial em PT-BR',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: '⭐ #1 editorial PT-BR — Escrita humana e raciocínio analítico avançado',
   },
   {
-    id: 'claude-3-5-sonnet-20241022',
+    id: 'anthropic/claude-3.5-sonnet',
     name: 'Claude 3.5 Sonnet',
-    provider: 'anthropic',
-    description: 'Geração excelente, raciocínio lógico forte e texto humano',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: 'Excelente qualidade de texto — Lógica forte e fluidez em português',
   },
   {
-    id: 'claude-3-5-haiku-20241022',
-    name: 'Claude 3.5 Haiku',
-    provider: 'anthropic',
-    description: 'Veloz e competente para produção de múltiplos artigos',
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: '⭐ Rápido e de enorme qualidade — O clássico OpenAI atualizado',
   },
   {
-    id: 'claude-3-opus-20240229',
-    name: 'Claude 3 Opus',
-    provider: 'anthropic',
-    description: 'Modelo pesado para máxima complexidade analítica',
-  },
-
-  // ── Groq (Ultra-rápido & DeepSeek) ─────────────────────
-  {
-    id: 'deepseek-r1-distill-llama-70b',
-    name: 'DeepSeek R1 (Llama 70B)',
-    provider: 'groq',
-    description: '🤖 Forte lógica de raciocínio da engine r1 de forma rápida (Groq)',
+    id: 'openai/o3-mini',
+    name: 'OpenAI o3-mini',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: '🤖 Raciocínio lógico superior — Excelente para megaposts estruturados',
   },
   {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B',
-    provider: 'groq',
-    description: '⭐ Open source mais poderoso da Meta — Ótimo vocabulário',
+    id: 'openai/gpt-4.5-preview',
+    name: 'GPT-4.5 Preview',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: 'Máxima imersão narrativa e fluidez — Pioneirismo da OpenAI',
   },
   {
-    id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B',
-    provider: 'groq',
-    description: 'O mais veloz de todos — Use para tarefas extremamente altas sem travar',
+    id: 'deepseek/deepseek-r1',
+    name: 'DeepSeek R1',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: '🧠 Top LMSYS Arena — Raciocínio profundo, excelente em análises longas',
   },
   {
-    id: 'mixtral-8x7b-32768',
-    name: 'Mixtral 8x7B (32k)',
-    provider: 'groq',
-    description: 'Grande capacidade de contexto com velocidade do Groq',
+    id: 'x-ai/grok-3-beta',
+    name: 'Grok 3 Beta',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: 'Modelo flagship da xAI — Alta criatividade e contexto de 131k tokens',
   },
-
-  // ── Mistral AI ─────────────────────────────────────────
   {
-    id: 'mistral-large-latest',
+    id: 'mistralai/mistral-large-latest',
     name: 'Mistral Large 2',
-    provider: 'mistral',
-    description: '⭐ Modelo premium da Mistral, fluência impecável',
+    provider: 'openrouter',
+    tier: 'paid',
+    description: '⭐ Fluência impecável em múltiplos idiomas — Custo-benefício premium',
+  },
+
+  // ── Providers Diretos — OpenAI ────────────────────────────
+  {
+    id: 'direct-o3-mini',
+    name: 'OpenAI o3-mini (Direto)',
+    provider: 'openai',
+    tier: 'paid',
+    description: '🤖 Raciocínio lógico máximo — Chave própria OpenAI, sem intermediário',
   },
   {
-    id: 'pixtral-large-2411',
-    name: 'Pixtral Large',
-    provider: 'mistral',
-    description: 'Novo modelo da série premium focado em alta compreensão',
+    id: 'direct-gpt-4o',
+    name: 'GPT-4o (Direto)',
+    provider: 'openai',
+    tier: 'paid',
+    description: 'Chave própria OpenAI — Máxima estabilidade e performance',
   },
   {
-    id: 'open-mistral-nemo',
-    name: 'Mistral Nemo',
+    id: 'direct-gpt-4o-mini',
+    name: 'GPT-4o Mini (Direto)',
+    provider: 'openai',
+    tier: 'paid',
+    description: 'Econômico e rápido via chave OpenAI — Ótimo para alto volume',
+  },
+
+  // ── Providers Diretos — Groq ──────────────────────────────
+  {
+    id: 'direct-llama-3.3-70b-versatile',
+    name: 'Llama 3.3 70B (Groq)',
+    provider: 'groq',
+    tier: 'paid',
+    description: '⚡ Velocidade extrema via Groq — Open-source mais poderoso da Meta',
+  },
+  {
+    id: 'direct-deepseek-r1-distill-llama-70b',
+    name: 'DeepSeek R1 (Groq)',
+    provider: 'groq',
+    tier: 'paid',
+    description: '⚡ Raciocínio r1 com velocidade Groq — Ideal para alto volume',
+  },
+  {
+    id: 'direct-llama-3.1-8b-instant',
+    name: 'Llama 3.1 8B Instant (Groq)',
+    provider: 'groq',
+    tier: 'free',
+    description: 'O mais veloz de todos — Para demanda máxima sem travamentos',
+  },
+
+  // ── Providers Diretos — Mistral ───────────────────────────
+  {
+    id: 'direct-mistral-large-latest',
+    name: 'Mistral Large 2 (Direto)',
     provider: 'mistral',
-    description: 'Aceita ATÉ 128k de tokens de contexto numa rede open-source',
-  }
+    tier: 'paid',
+    description: '⭐ Chave própria Mistral — Fluência premium em PT-BR',
+  },
+  {
+    id: 'direct-open-mistral-nemo',
+    name: 'Mistral Nemo (Direto)',
+    provider: 'mistral',
+    tier: 'free',
+    description: '128k de contexto via Mistral — Open-source rápido e eficiente',
+  },
 ];
 
+// ── Modelos de Imagem ────────────────────────────────────────
+
+export const AI_IMAGE_MODELS: AIImageModel[] = [
+  // Gratuitos via OpenRouter (2 melhores)
+  {
+    id: 'black-forest-labs/flux-schnell:free',
+    name: 'FLUX Schnell (Grátis)',
+    tier: 'free',
+    description: '⭐ Ultra-rápido, qualidade fotorrealista — Melhor grátis disponível',
+  },
+  {
+    id: 'stabilityai/stable-diffusion-3-5-medium:free',
+    name: 'SD 3.5 Medium (Grátis)',
+    tier: 'free',
+    description: 'Alta fidelidade visual — Ótima composição sem custo',
+  },
+
+  // Pagos via OpenRouter (5 melhores)
+  {
+    id: 'openai/dall-e-3',
+    name: 'DALL-E 3 (OpenAI)',
+    tier: 'paid',
+    description: '⭐ Melhor coerência semântica — Entende prompts complexos com perfeição',
+  },
+  {
+    id: 'black-forest-labs/flux-1.1-ultra',
+    name: 'FLUX 1.1 Ultra',
+    tier: 'paid',
+    description: 'Fotorrealismo de nível profissional — Máxima qualidade para editorial',
+  },
+  {
+    id: 'stabilityai/stable-image-ultra',
+    name: 'Stable Image Ultra',
+    tier: 'paid',
+    description: 'Alta resolução para uso comercial — Resultado impressionante e consistente',
+  },
+  {
+    id: 'ideogram-ai/ideogram-v2',
+    name: 'Ideogram V2',
+    tier: 'paid',
+    description: 'Excelente integração de texto na imagem — Ótimo para capas e miniaturas',
+  },
+  {
+    id: 'recraft-ai/recraft-v3',
+    name: 'Recraft V3',
+    tier: 'paid',
+    description: 'Design editorial e vetorial de ponta — Ideal para artigos de nicho premium',
+  },
+];
+
+// Maps model id to its direct provider (for direct API calls)
+const DIRECT_MODEL_MAP: Record<string, { provider: AIProvider; realId: string }> = {
+  'direct-o3-mini':                     { provider: 'openai',  realId: 'o3-mini' },
+  'direct-gpt-4o':                      { provider: 'openai',  realId: 'gpt-4o' },
+  'direct-gpt-4o-mini':                 { provider: 'openai',  realId: 'gpt-4o-mini' },
+  'direct-llama-3.3-70b-versatile':     { provider: 'groq',    realId: 'llama-3.3-70b-versatile' },
+  'direct-deepseek-r1-distill-llama-70b': { provider: 'groq',  realId: 'deepseek-r1-distill-llama-70b' },
+  'direct-llama-3.1-8b-instant':        { provider: 'groq',    realId: 'llama-3.1-8b-instant' },
+  'direct-mistral-large-latest':        { provider: 'mistral', realId: 'mistral-large-latest' },
+  'direct-open-mistral-nemo':           { provider: 'mistral', realId: 'open-mistral-nemo' },
+};
+
 export function getProviderFromModel(modelId: string): AIProvider {
+  if (DIRECT_MODEL_MAP[modelId]) return DIRECT_MODEL_MAP[modelId].provider;
   const model = AI_MODELS.find(m => m.id === modelId);
-  return model?.provider ?? 'gemini';
+  return model?.provider ?? 'openrouter';
+}
+
+export function getRealModelId(modelId: string): string {
+  return DIRECT_MODEL_MAP[modelId]?.realId ?? modelId;
 }

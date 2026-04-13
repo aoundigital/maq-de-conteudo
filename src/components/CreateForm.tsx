@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Star, Link as LinkIcon, Sparkles, Bot, ChevronDown, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { generateArticles } from '../services/aiService';
 import JSZip from 'jszip';
-import { HistoryItem, AppSettings, AI_MODELS, getProviderFromModel } from '../types';
+import { HistoryItem, AppSettings, AI_MODELS, AI_IMAGE_MODELS, getProviderFromModel } from '../types';
 
 interface CreateFormProps {
   settings: AppSettings;
@@ -10,11 +10,10 @@ interface CreateFormProps {
 }
 
 const PROVIDER_LABEL: Record<string, { label: string; emoji: string; color: string; keyField: keyof AppSettings['aiKeys'] }> = {
-  gemini:    { label: 'Google Gemini',  emoji: '🟢', color: 'text-emerald-700', keyField: 'geminiKey' },
-  openai:    { label: 'OpenAI',         emoji: '🔵', color: 'text-blue-700',    keyField: 'openaiKey' },
-  anthropic: { label: 'Anthropic',      emoji: '🟠', color: 'text-orange-700',  keyField: 'anthropicKey' },
-  groq:      { label: 'Groq',           emoji: '🟣', color: 'text-purple-700',  keyField: 'groqKey' },
-  mistral:   { label: 'Mistral AI',     emoji: '🔶', color: 'text-rose-700',    keyField: 'mistralKey' },
+  openrouter: { label: 'OpenRouter',  emoji: '🔀', color: 'text-amber-700',  keyField: 'openrouterKey' },
+  openai:     { label: 'OpenAI',      emoji: '🔵', color: 'text-blue-700',   keyField: 'openaiKey' },
+  groq:       { label: 'Groq',        emoji: '🟣', color: 'text-purple-700', keyField: 'groqKey' },
+  mistral:    { label: 'Mistral AI',  emoji: '🔶', color: 'text-rose-700',   keyField: 'mistralKey' },
 };
 
 export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
@@ -29,11 +28,14 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
     url: '',
   });
 
-  const [localModel, setLocalModel] = useState(settings.selectedModel || 'gemini-2.0-flash');
+  const [localModel, setLocalModel] = useState(settings.selectedModel || 'meta-llama/llama-3.3-70b-instruct:free');
+  const [localImageModel, setLocalImageModel] = useState(settings.selectedImageModel || 'black-forest-labs/flux-schnell:free');
 
   const currentProvider = getProviderFromModel(localModel);
-  const currentProviderInfo = PROVIDER_LABEL[currentProvider];
+  const currentProviderInfo = PROVIDER_LABEL[currentProvider] ?? PROVIDER_LABEL['openrouter'];
   const currentHasKey = (settings.aiKeys[currentProviderInfo.keyField] ?? '').trim().length > 0;
+
+  const openrouterConfigured = (settings.aiKeys.openrouterKey ?? '').trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +50,11 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
     setProgress({ current: 0, total: formData.quantity });
 
     try {
-      const settingsWithModel: AppSettings = { ...settings, selectedModel: localModel };
+      const settingsWithModel: AppSettings = {
+        ...settings,
+        selectedModel: localModel,
+        selectedImageModel: localImageModel,
+      };
 
       const articles = await generateArticles(
         { ...formData, settings: settingsWithModel },
@@ -92,6 +98,15 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
     }
   };
 
+  // Helpers for rendering model optgroups
+  const freeTextModels   = AI_MODELS.filter(m => m.tier === 'free'  && m.provider === 'openrouter');
+  const paidTextModels   = AI_MODELS.filter(m => m.tier === 'paid'  && m.provider === 'openrouter');
+  const openaiModels     = AI_MODELS.filter(m => m.provider === 'openai');
+  const groqModels       = AI_MODELS.filter(m => m.provider === 'groq');
+  const mistralModels    = AI_MODELS.filter(m => m.provider === 'mistral');
+  const freeImageModels  = AI_IMAGE_MODELS.filter(m => m.tier === 'free');
+  const paidImageModels  = AI_IMAGE_MODELS.filter(m => m.tier === 'paid');
+
   return (
     <div className="max-w-2xl mx-auto pb-12 px-4 md:px-0">
       <section className="mb-10 text-center md:text-left">
@@ -104,10 +119,10 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
       <div className="bg-surface-container-lowest rounded-xl p-6 md:p-8 shadow-[0_12px_40px_rgba(11,28,48,0.04)] mb-8">
         <form onSubmit={handleSubmit} className="space-y-8">
 
-          {/* ── Modelo de IA ── */}
+          {/* ── Modelo de Texto ── */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2" htmlFor="aiModel">
-              Modelo de IA
+              Modelo de IA — Texto
             </label>
             <div className="relative">
               <select
@@ -116,28 +131,28 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
                 value={localModel}
                 onChange={e => setLocalModel(e.target.value)}
               >
-                <optgroup label="🟢 Google Gemini">
-                  {AI_MODELS.filter(m => m.provider === 'gemini').map(m => (
+                <optgroup label="🆓 Gratuitos — OpenRouter">
+                  {freeTextModels.map(m => (
                     <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
                   ))}
                 </optgroup>
-                <optgroup label="🔵 OpenAI">
-                  {AI_MODELS.filter(m => m.provider === 'openai').map(m => (
+                <optgroup label="💎 Pagos — OpenRouter (Melhores Globais)">
+                  {paidTextModels.map(m => (
                     <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
                   ))}
                 </optgroup>
-                <optgroup label="🟠 Anthropic Claude">
-                  {AI_MODELS.filter(m => m.provider === 'anthropic').map(m => (
+                <optgroup label="🔵 OpenAI (Chave Direta)">
+                  {openaiModels.map(m => (
                     <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
                   ))}
                 </optgroup>
-                <optgroup label="🟣 Groq — Ultra-Rápido (Llama)">
-                  {AI_MODELS.filter(m => m.provider === 'groq').map(m => (
+                <optgroup label="🟣 Groq — Ultra-Rápido (Chave Direta)">
+                  {groqModels.map(m => (
                     <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
                   ))}
                 </optgroup>
-                <optgroup label="🔶 Mistral AI">
-                  {AI_MODELS.filter(m => m.provider === 'mistral').map(m => (
+                <optgroup label="🔶 Mistral AI (Chave Direta)">
+                  {mistralModels.map(m => (
                     <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
                   ))}
                 </optgroup>
@@ -164,6 +179,55 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
                 <p className="text-xs text-rose-700 leading-relaxed">
                   A chave de API para <strong>{currentProviderInfo.label}</strong> não está configurada.{' '}
                   Acesse <strong>Configurações → Inteligências Artificiais</strong> para adicioná-la.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* ── Modelo de Imagem ── */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-secondary mb-2" htmlFor="imageModel">
+              Modelo de IA — Imagem
+            </label>
+            <div className="relative">
+              <select
+                id="imageModel"
+                className="w-full appearance-none bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3.5 pr-10 text-on-surface text-base focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                value={localImageModel}
+                onChange={e => setLocalImageModel(e.target.value)}
+              >
+                <optgroup label="🆓 Gratuitos — OpenRouter">
+                  {freeImageModels.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="💎 Pagos — OpenRouter (Alto Desempenho)">
+                  {paidImageModels.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
+                  ))}
+                </optgroup>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+            </div>
+
+            <div className="mt-2 flex items-center gap-2">
+              <ImageIcon className="w-3.5 h-3.5 text-outline" />
+              <span className="text-[11px] text-secondary">
+                Geração via <strong className="text-amber-700">🔀 OpenRouter</strong> — usa a chave OpenRouter configurada
+              </span>
+              {openrouterConfigured ? (
+                <span className="ml-auto text-[10px] text-emerald-600 font-bold uppercase tracking-wide">✓ Chave OK</span>
+              ) : (
+                <span className="ml-auto text-[10px] text-amber-600 font-bold uppercase tracking-wide">⚠ Sem chave</span>
+              )}
+            </div>
+
+            {!openrouterConfigured && (
+              <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  Sem chave OpenRouter, será usada uma imagem de fallback.{' '}
+                  Configure em <strong>Configurações → OpenRouter</strong> para ativar a geração com IA.
                 </p>
               </div>
             )}
@@ -236,6 +300,7 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
               value={formData.otherKeywords}
               onChange={e => setFormData({ ...formData, otherKeywords: e.target.value })}
             />
+            <p className="text-[11px] text-outline mt-1">Uma destas keywords será usada como alt-tag da imagem gerada.</p>
           </div>
 
           {/* ── URL ── */}
@@ -256,8 +321,6 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
               />
             </div>
           </div>
-
-          {/* ── Info imagem removida a pedido do usuário ── */}
 
           {/* ── Erro ── */}
           {error && (
@@ -312,7 +375,7 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
         <div className="bg-surface-container-high rounded-xl p-5 border-l-4 border-primary">
           <h4 className="font-serif italic text-primary text-lg mb-1">Dica do Editor</h4>
           <p className="text-secondary text-xs leading-relaxed">
-            Palavras-chave de cauda longa na seção "Outras Palavras-chave" aumentam a relevância semântica e reduzem a concorrência nas SERPs.
+            Palavras-chave de cauda longa na seção "Outras Palavras-chave" aumentam a relevância semântica e reduzem a concorrência nas SERPs. Uma delas também será usada como alt-tag da imagem.
           </p>
         </div>
         <div className="bg-white/40 backdrop-blur-sm rounded-xl p-5 border border-outline-variant/10">
@@ -326,8 +389,12 @@ export default function CreateForm({ settings, onSuccess }: CreateFormProps) {
             <span className="text-xs font-mono font-bold text-primary">{settings.minWords} palavras</span>
           </div>
           <div className="mt-0.5 flex items-center gap-2">
-            <span className="text-xs text-outline">Modelo ativo:</span>
-            <span className="text-xs font-mono font-medium text-on-surface truncate">{localModel}</span>
+            <span className="text-xs text-outline">Temperatura:</span>
+            <span className="text-xs font-mono font-bold text-primary">{(settings.temperature ?? 0.7).toFixed(1)}</span>
+          </div>
+          <div className="mt-0.5 flex items-center gap-2">
+            <span className="text-xs text-outline">Modelo texto:</span>
+            <span className="text-xs font-mono font-medium text-on-surface truncate">{localModel.split('/').pop()}</span>
           </div>
         </div>
       </div>

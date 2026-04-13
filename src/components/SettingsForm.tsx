@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
   Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, XCircle,
-  ChevronDown, Bot, Image as ImageIcon, Database, Zap,
+  ChevronDown, Bot, Image as ImageIcon, Database, Zap, Thermometer,
 } from 'lucide-react';
-import { AppSettings, AI_MODELS, AIProvider } from '../types';
+import { AppSettings } from '../types';
 import { isSupabaseConfigured } from '../services/supabaseService';
 
 interface SettingsFormProps {
@@ -89,7 +89,17 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const countByProvider = (p: AIProvider) => AI_MODELS.filter(m => m.provider === p).length;
+  const tempValue = local.temperature ?? 0.7;
+  const tempLabel =
+    tempValue <= 0.3 ? 'Preciso e Determinístico' :
+    tempValue <= 0.7 ? 'Balanceado e Natural' :
+    tempValue <= 1.1 ? 'Criativo e Variado' :
+    'Muito Criativo (experimental)';
+  const tempColor =
+    tempValue <= 0.3 ? 'text-blue-600' :
+    tempValue <= 0.7 ? 'text-emerald-600' :
+    tempValue <= 1.1 ? 'text-amber-600' :
+    'text-rose-600';
 
   return (
     <div className="max-w-2xl mx-auto pb-12 px-4 md:px-0">
@@ -164,6 +174,42 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
             </div>
           </div>
 
+          {/* ── Temperatura de Criatividade ── */}
+          <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Thermometer className="w-4 h-4 text-secondary" />
+                <label className="text-xs font-bold uppercase tracking-widest text-secondary" htmlFor="temperature">
+                  Temperatura de Criatividade
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-bold tabular-nums ${tempColor}`}>{tempValue.toFixed(1)}</span>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${tempColor}`}>{tempLabel}</span>
+              </div>
+            </div>
+
+            <input
+              id="temperature"
+              type="range"
+              min="0"
+              max="1.5"
+              step="0.1"
+              value={tempValue}
+              onChange={e => setLocal({ ...local, temperature: parseFloat(e.target.value) })}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer accent-primary"
+            />
+
+            <div className="flex justify-between text-[10px] text-outline font-medium">
+              <span>🎯 Preciso (0.0)</span>
+              <span>⚖️ Balanceado (0.7)</span>
+              <span>🎨 Criativo (1.5)</span>
+            </div>
+            <p className="text-[11px] text-outline-variant leading-relaxed">
+              Controla o nível de criatividade e aleatoriedade da IA. Valores baixos geram textos mais previsíveis e factuais; valores altos resultam em escrita mais criativa e variada. Aplicado em todos os modelos.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Público-Alvo */}
             <div>
@@ -225,8 +271,8 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
           </div>
 
           <p className="text-xs text-on-surface-variant leading-relaxed">
-            As imagens são buscadas automaticamente usando a API Pollinations, hospedadas permanentemente no ImgBB (se configurado), e inseridas por meio de uma inteligência artificial otimizada com base na palavra-chave principal do artigo.
-            Use o campo abaixo para refinar o estilo visual e obter imagens mais relevantes.
+            As imagens são geradas pela IA escolhida na tela de criação, hospedadas permanentemente no ImgBB (se configurado), e inseridas automaticamente com alt-tag e backlink para a URL informada.
+            Use o campo abaixo para refinar o estilo visual.
           </p>
 
           <div>
@@ -242,7 +288,7 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
               onChange={e => setLocal({ ...local, imageStyle: e.target.value })}
             />
             <p className="text-[11px] text-outline mt-1.5">
-              Se vazio, a busca usará apenas a palavra-chave principal do artigo. Quanto mais específico, melhor a relevância da imagem.
+              Se vazio, a busca usará apenas a palavra-chave principal do artigo. Quanto mais específico, melhor a relevância.
             </p>
           </div>
         </div>
@@ -258,18 +304,21 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
             As chaves são armazenadas localmente no seu navegador e nunca enviadas a terceiros. Configure apenas os provedores que deseja usar.
           </p>
 
-          {/* Google Gemini */}
-          <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/30 space-y-3">
+          {/* OpenRouter — Principal */}
+          <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-3">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-base">🟢</span>
-              <span className="text-sm font-semibold text-emerald-800">Google Gemini</span>
-              <span className="ml-auto text-[10px] text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('gemini')} modelos</span>
+              <span className="text-base">🔀</span>
+              <span className="text-sm font-semibold text-amber-900">OpenRouter</span>
+              <span className="ml-auto text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-medium">Modelos Gratuitos + Pagos</span>
             </div>
+            <p className="text-[11px] text-amber-800 -mt-1 leading-relaxed">
+              Uma única chave para acessar todos os modelos — gratuitos e pagos — incluindo Claude, GPT-4o, DeepSeek, Grok, FLUX e DALL-E 3. <strong>Recomendado como chave principal.</strong>
+            </p>
             <KeyField
-              id="geminiKey" label="Chave Gemini (GEMINI_API_KEY)"
-              value={local.aiKeys.geminiKey} onChange={v => updateKey('geminiKey', v)}
-              placeholder="AIzaSy..." color="text-emerald-700"
-              linkUrl="https://aistudio.google.com/app/apikey" linkLabel="Google AI Studio"
+              id="openrouterKey" label="Chave OpenRouter (OPENROUTER_API_KEY)"
+              value={local.aiKeys.openrouterKey} onChange={v => updateKey('openrouterKey', v)}
+              placeholder="sk-or-v1-..." color="text-amber-800"
+              linkUrl="https://openrouter.ai/keys" linkLabel="Criar chave gratuita"
             />
           </div>
 
@@ -277,29 +326,15 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
           <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base">🔵</span>
-              <span className="text-sm font-semibold text-blue-800">OpenAI</span>
-              <span className="ml-auto text-[10px] text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('openai')} modelos</span>
+              <span className="text-sm font-semibold text-blue-800">OpenAI (Direto)</span>
+              <span className="ml-auto text-[10px] text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full font-medium">Chave Proprietária</span>
             </div>
+            <p className="text-[11px] text-blue-700 -mt-1">Chave própria OpenAI para usar GPT-4o e o3-mini sem intermediário. Máxima estabilidade.</p>
             <KeyField
               id="openaiKey" label="Chave OpenAI (OPENAI_API_KEY)"
               value={local.aiKeys.openaiKey} onChange={v => updateKey('openaiKey', v)}
               placeholder="sk-proj-..." color="text-blue-700"
               linkUrl="https://platform.openai.com/api-keys" linkLabel="OpenAI Platform"
-            />
-          </div>
-
-          {/* Anthropic */}
-          <div className="p-4 rounded-xl border border-orange-100 bg-orange-50/30 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-base">🟠</span>
-              <span className="text-sm font-semibold text-orange-800">Anthropic Claude</span>
-              <span className="ml-auto text-[10px] text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('anthropic')} modelos</span>
-            </div>
-            <KeyField
-              id="anthropicKey" label="Chave Anthropic (ANTHROPIC_API_KEY)"
-              value={local.aiKeys.anthropicKey} onChange={v => updateKey('anthropicKey', v)}
-              placeholder="sk-ant-..." color="text-orange-700"
-              linkUrl="https://console.anthropic.com/settings/keys" linkLabel="Anthropic Console"
             />
           </div>
 
@@ -309,9 +344,9 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
               <span className="text-base">🟣</span>
               <Zap className="w-3.5 h-3.5 text-purple-600" />
               <span className="text-sm font-semibold text-purple-800">Groq — Ultra-Rápido</span>
-              <span className="ml-auto text-[10px] text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('groq')} modelos</span>
+              <span className="ml-auto text-[10px] text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">Inferência Extrema</span>
             </div>
-            <p className="text-[11px] text-purple-700 -mt-1">Inferência extremamente rápida. Free tier generoso. Ideal para alto volume.</p>
+            <p className="text-[11px] text-purple-700 -mt-1">Inferência extremamente rápida com Llama e DeepSeek. Free tier generoso. Ideal para alto volume.</p>
             <KeyField
               id="groqKey" label="Chave Groq (GROQ_API_KEY)"
               value={local.aiKeys.groqKey} onChange={v => updateKey('groqKey', v)}
@@ -324,10 +359,10 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
           <div className="p-4 rounded-xl border border-rose-100 bg-rose-50/30 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base">🔶</span>
-              <span className="text-sm font-semibold text-rose-800">Mistral AI</span>
-              <span className="ml-auto text-[10px] text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full font-medium">{countByProvider('mistral')} modelos</span>
+              <span className="text-sm font-semibold text-rose-800">Mistral AI (Direto)</span>
+              <span className="ml-auto text-[10px] text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full font-medium">Chave Proprietária</span>
             </div>
-            <p className="text-[11px] text-rose-700 -mt-1">Alta qualidade em múltiplos idiomas. Excelente custo-benefício para português.</p>
+            <p className="text-[11px] text-rose-700 -mt-1">Alta qualidade em múltiplos idiomas. Excelente custo-benefício para português. Sem intermediário.</p>
             <KeyField
               id="mistralKey" label="Chave Mistral (MISTRAL_API_KEY)"
               value={local.aiKeys.mistralKey} onChange={v => updateKey('mistralKey', v)}
@@ -342,7 +377,7 @@ export default function SettingsForm({ settings, onSave }: SettingsFormProps) {
               <span className="text-base">🖼️</span>
               <span className="text-sm font-semibold text-teal-800">Hospedagem ImgBB (Imagens IA)</span>
             </div>
-            <p className="text-[11px] text-teal-700 -mt-1">Usado para hospedar as imagens geradas pela IA e incluí-las nos artigos permanentemente.</p>
+            <p className="text-[11px] text-teal-700 -mt-1">Usado para hospedar permanentemente as imagens geradas pela IA e incluí-las nos artigos. Sem esta chave, as imagens usam URLs temporárias.</p>
             <KeyField
               id="imgbbKey" label="Chave de API do ImgBB"
               value={local.aiKeys.imgbbKey ?? ''} onChange={v => updateKey('imgbbKey', v)}
