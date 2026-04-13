@@ -32,10 +32,13 @@ async function generateAndUploadImage(
   const styleHint = imageStyle?.trim() ? `, ${imageStyle.trim()}` : '';
   const prompt = `${mainKeyword}${styleHint}, editorial photography, professional, high quality, 16:9`;
 
-  // If no OpenRouter key, return a placeholder Unsplash image
+  // Pollinations fallback (works from browser, no CORS, no key required)
+  const seed = Math.floor(Math.random() * 1000000);
+  const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=628&nologo=true&seed=${seed}`;
+
+  // If no OpenRouter key, use Pollinations directly
   if (!openrouterKey?.trim()) {
-    const query = encodeURIComponent(mainKeyword);
-    return `https://source.unsplash.com/1792x1024/?${query}`;
+    return pollinationsUrl;
   }
 
   let imageUrl = '';
@@ -67,10 +70,9 @@ async function generateAndUploadImage(
     if (!imageUrl) throw new Error('No image URL returned by OpenRouter');
 
   } catch (error) {
-    console.error('Image generation failed:', error);
-    // Fallback to Unsplash if generation fails
-    const query = encodeURIComponent(mainKeyword);
-    return `https://source.unsplash.com/1792x1024/?${query}`;
+    console.error('Image generation via OpenRouter failed, using Pollinations fallback:', error);
+    // Pollinations fallback — browser-safe, no CORS issues
+    return pollinationsUrl;
   }
 
   // Step 2: Upload to ImgBB for permanent hosting
