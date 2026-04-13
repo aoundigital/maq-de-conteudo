@@ -21,9 +21,43 @@ export interface GeneratedArticle {
 
 // ── Image Generation ──────────────────────────────────────────────────────────
 
+async function uploadToImgBB(blobUrl: string, imgbbKey: string): Promise<string> {
+  const imgRes = await fetch(blobUrl);
+  if (!imgRes.ok) throw new Error(`Falha ao baixar imagem: ${imgRes.status}`);
+
+  const blob = await imgRes.blob();
+
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64data = (reader.result as string).split(',')[1];
+        const formData = new FormData();
+        formData.append('image', base64data);
+
+        const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json().catch(() => ({}));
+          throw new Error(`ImgBB upload failed ${uploadRes.status}: ${JSON.stringify(errData)}`);
+        }
+        const uploadData = await uploadRes.json();
+        resolve(uploadData.data.url as string);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function generateAndUploadImage(
   mainKeyword: string,
-  otherKeywords: string,
+  _otherKeywords: string,
   imageStyle: string,
   selectedImageModel: string,
   openrouterKey: string,
@@ -32,90 +66,61 @@ async function generateAndUploadImage(
   const styleHint = imageStyle?.trim() ? `, ${imageStyle.trim()}` : '';
   const prompt = `${mainKeyword}${styleHint}, editorial photography, professional, high quality, 16:9`;
 
-  // Pollinations fallback (works from browser, no CORS, no key required)
-  const seed = Math.floor(Math.random() * 1000000);
-  const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=628&nologo=true&seed=${seed}`;
+  // ── PHASE 1: obtain a raw image URL ────────────────────────────────────────
+  // Try OpenRouter AI image model first; fall back to Pollinations if anything fails.
+  let rawImageUrl = '';
 
-  // If no OpenRouter key, use Pollinations directly
-  if (!openrouterKey?.trim()) {
-    return pollinationsUrl;
-  }
+  if (openrouterKey?.trim()) {
+    try {
+      const genRes = await fetch('https://openrouter.ai/api/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openrouterKey.trim()}`,
+        },
+        body: JSON.stringify({
+          model: selectedImageModel,
+          prompt,
+          n: 1,
+          size: '1792x1024',
+        }),
+      });
 
-  let imageUrl = '';
-
-  try {
-    // Step 1: Generate image via OpenRouter Image API
-    const genRes = await fetch('https://openrouter.ai/api/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openrouterKey.trim()}`,
-      },
-      body: JSON.stringify({
-        model: selectedImageModel,
-        prompt,
-        n: 1,
-        size: '1792x1024',
-      }),
-    });
-
-    if (!genRes.ok) {
-      const err = await genRes.json().catch(() => ({}));
-      throw new Error(`OpenRouter Image error ${genRes.status}: ${(err as { error?: { message?: string } }).error?.message ?? genRes.statusText}`);
+      if (genRes.ok) {
+        const genData = await genRes.json() as { data: { url: string }[] };
+        rawImageUrl = genData.data?.[0]?.url ?? '';
+      } else {
+        const errBody = await genRes.json().catch(() => ({})) as { error?: { message?: string } };
+        console.warn(`OpenRouter Image ${genRes.status}: ${errBody.error?.message ?? genRes.statusText} — usando Pollinations como fallback`);
+      }
+    } catch (err) {
+      console.warn('OpenRouter image fetch failed — usando Pollinations como fallback:', err);
     }
-
-    const genData = await genRes.json() as { data: { url: string }[] };
-    imageUrl = genData.data?.[0]?.url ?? '';
-
-    if (!imageUrl) throw new Error('No image URL returned by OpenRouter');
-
-  } catch (error) {
-    console.error('Image generation via OpenRouter failed, using Pollinations fallback:', error);
-    // Pollinations fallback — browser-safe, no CORS issues
-    return pollinationsUrl;
   }
 
-  // Step 2: Upload to ImgBB for permanent hosting
+  // Pollinations as fallback (browser-safe, no key, reliable)
+  if (!rawImageUrl) {
+    const seed = Math.floor(Math.random() * 1000000);
+    rawImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=628&nologo=true&seed=${seed}`;
+  }
+
+  // ── PHASE 2: upload raw image to ImgBB (always, if key is configured) ──────
   if (!imgbbKey?.trim()) {
-    return imageUrl; // Return temporary URL if no ImgBB key
+    // No ImgBB key — use raw URL directly (temporary or Pollinations)
+    return rawImageUrl;
   }
 
   try {
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) throw new Error('Failed to download generated image');
-
-    const blob = await imgRes.blob();
-
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64data = (reader.result as string).split(',')[1];
-          const formData = new FormData();
-          formData.append('image', base64data);
-
-          const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`, {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!uploadRes.ok) throw new Error('ImgBB upload failed');
-          const uploadData = await uploadRes.json();
-          resolve(uploadData.data.url as string);
-        } catch (e) {
-          reject(e);
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    const permanentUrl = await uploadToImgBB(rawImageUrl, imgbbKey);
+    return permanentUrl;
   } catch (error) {
-    console.error('ImgBB upload failed, using temporary URL:', error);
-    return imageUrl;
+    console.error('ImgBB upload failed — returning raw image URL as last resort:', error);
+    return rawImageUrl;
   }
 }
 
 // ── HTML Sanitization ─────────────────────────────────────────────────────────
+
 
 // CVE-7: Sanitize AI-generated HTML to prevent stored XSS
 function sanitizeHtml(html: string): string {
